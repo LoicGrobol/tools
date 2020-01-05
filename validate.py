@@ -1,4 +1,7 @@
 #! /usr/bin/env python3
+
+# TODO: replace huge string matching by set membership testing
+
 # Original code (2015) by Filip Ginter and Sampo Pyysalo.
 # DZ 2018-11-04: Porting the validator to Python 3.
 import sys
@@ -117,7 +120,7 @@ def warn(
 
 
 def is_whitespace(line):
-    return re.match(r"^\s+$", line)
+    return line and line.isspace()
 
 
 def is_word(cols):
@@ -134,7 +137,8 @@ def is_empty_node(cols):
 
 def parse_empty_node_id(cols):
     m = re.match(r"^([0-9]+)\.([0-9]+)$", cols[ID])
-    assert m, "parse_empty_node_id with non-empty node"
+    if not m:
+        raise ValueError("parse_empty_node_id with non-empty node")
     return m.groups()
 
 
@@ -429,10 +433,7 @@ def validate_token_ranges(tree):
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
         start, end = m.groups()
-        try:
-            start, end = int(start), int(end)
-        except ValueError:
-            assert False, "internal error"  # RE should assure that this works
+        start, end = int(start), int(end)
         if (
             not start < end
         ):  ###!!! This was already tested above in validate_ID_sequence()! Should we remove it from there?
@@ -651,7 +652,8 @@ def validate_token_empty_vals(cols):
     This is required by UD guidelines although it is not a problem in general,
     therefore a level 2 test.
     """
-    assert is_multiword_token(cols), "internal error"
+    if not is_multiword_token(cols):
+        raise ValueError(f"Validating multiword empty values only makes sense for multiword tokens")
     for col_idx in range(
         LEMMA, MISC
     ):  # all columns except the first two (ID, FORM) and the last one (MISC)
@@ -672,7 +674,8 @@ def validate_empty_node_empty_vals(cols):
     required by UD guidelines but not necessarily by CoNLL-U, therefore
     a level 2 test.
     """
-    assert is_empty_node(cols), "internal error"
+    if not is_empty_node(cols):
+        raise ValueError(f"Validating empty node empty values only makes sense for empty nodes")
     for col_idx in (HEAD, DEPREL):
         if cols[col_idx] != "_":
             testlevel = 2

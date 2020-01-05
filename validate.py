@@ -387,7 +387,9 @@ def validate_ID_sequence(tree):
     )  # Words should form a sequence 1,2,...
     if wrdstrseq != expstrseq:
         testid = "word-id-sequence"
-        testmessage = f"Words do not form a sequence. Got '{wrdstrseq}'. Expected '{expstrseq}'."
+        testmessage = (
+            f"Words do not form a sequence. Got '{wrdstrseq}'. Expected '{expstrseq}'."
+        )
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
     # Check elementary sanity of word intervals.
     # Remember that these are not just multi-word tokens. Here we have intervals even for
@@ -469,9 +471,7 @@ def validate_sent_id(comments, known_ids, lcode):
         else:
             if c.startswith("# sent_id") or c.startswith("#sent_id"):
                 testid = "invalid-sent-id"
-                testmessage = (
-                    f"Spurious sent_id line: '{c}' Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
-                )
+                testmessage = f"Spurious sent_id line: '{c}' Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if not matched:
         testid = "missing-sent-id"
@@ -493,9 +493,7 @@ def validate_sent_id(comments, known_ids, lcode):
             sid.count("/") == 1 and lcode != "ud" and lcode != "shopen"
         ):
             testid = "slash-in-sent-id"
-            testmessage = (
-                f"The forward slash is reserved for special use in parallel treebanks: '{sid}'"
-            )
+            testmessage = f"The forward slash is reserved for special use in parallel treebanks: '{sid}'"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         known_ids.add(sid)
 
@@ -1737,9 +1735,7 @@ def validate_functional_leaves(id, tree):
                 r"^(goeswith|fixed|reparandum|conj|punct)$", cdeprel
             ):
                 testid = "leaf-cc"
-                testmessage = (
-                    f"'{pdeprel}' not expected to have children ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel} --> {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
-                )
+                testmessage = f"'{pdeprel}' not expected to have children ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel} --> {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 warn(
                     testmessage,
                     testclass,
@@ -2765,7 +2761,9 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
             testlevel = 5
             testclass = "Morpho"
             testid = "aux-lemma"
-            testmessage = f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
+            testmessage = (
+                f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
+            )
             warn(
                 testmessage,
                 testclass,
@@ -3091,9 +3089,7 @@ def load_set(
                         testlevel = 4
                         testclass = "Enhanced"
                         testid = "malformed-relation"
-                        testmessage = (
-                            f"Spurious language-specific enhanced relation '{v}' - it does not match the regular expression that restricts enhanced relations."
-                        )
+                        testmessage = f"Spurious language-specific enhanced relation '{v}' - it does not match the regular expression that restricts enhanced relations."
                         warn(
                             testmessage,
                             testclass,
@@ -3111,9 +3107,7 @@ def load_set(
                         testlevel = 4
                         testclass = "Syntax"
                         testid = "malformed-relation"
-                        testmessage = (
-                            f"Spurious language-specific relation '{v}' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
-                        )
+                        testmessage = f"Spurious language-specific relation '{v}' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
                         warn(
                             testmessage,
                             testclass,
@@ -3128,9 +3122,7 @@ def load_set(
                         if parts[0] not in res and parts[0] != "ref":
                             testlevel = 4
                             testclass = "Syntax"
-                            testmessage = (
-                                f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
-                            )
+                            testmessage = f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
                             warn(
                                 testmessage,
                                 testclass,
@@ -3143,9 +3135,7 @@ def load_set(
                     except:
                         testlevel = 4
                         testclass = "Syntax"
-                        testmessage = (
-                            f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
-                        )
+                        testmessage = f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
                         warn(
                             testmessage,
                             testclass,
@@ -3319,10 +3309,8 @@ if __name__ == "__main__":
         if not args.quiet:
             for k, v in sorted(error_counter.items()):
                 print(f"{k} errors: {v:d}", file=sys.stderr)
-            print(
-                "*** FAILED *** with {0} errors".format(sum(v for k, v in iter(error_counter.items()))),
-                file=sys.stderr,
-            )
+            n_errors = sum(v for k, v in iter(error_counter.items()))
+            print(f"*** FAILED *** with {n_errors} errors", file=sys.stderr)
         for f_name in sorted(warn_on_missing_files):
             filepath = os.path.join(THISDIR, "data", f_name + "." + args.lang)
             if not os.path.exists(filepath):

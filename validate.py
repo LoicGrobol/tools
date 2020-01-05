@@ -107,30 +107,17 @@ def warn(
                 node = f" Node {nodeid}"
             if nodelineno:
                 print(
-                    "[%sLine %d%s%s]: [L%d %s %s] %s"
-                    % (fn, nodelineno, sent, node, testlevel, error_type, testid, msg),
+                    f"[{fn}Line {nodelineno:d}{sent}{node}]: [L{testlevel:d} {error_type} {testid}] {msg}",
                     file=sys.stderr,
                 )
             elif lineno:
                 print(
-                    "[%sLine %d%s%s]: [L%d %s %s] %s"
-                    % (fn, curr_line, sent, node, testlevel, error_type, testid, msg),
+                    f"[{fn}Line {curr_line:d}{sent}{node}]: [L{testlevel:d} {error_type} {testid}] {msg}",
                     file=sys.stderr,
                 )
             else:
                 print(
-                    "[%sTree number %d on line %d%s%s]: [L%d %s %s] %s"
-                    % (
-                        fn,
-                        tree_counter,
-                        sentence_line,
-                        sent,
-                        node,
-                        testlevel,
-                        error_type,
-                        testid,
-                        msg,
-                    ),
+                    f"[{fn}Tree number {tree_counter:d} on line {sentence_line:d}{sent}{node}]: [L{testlevel:d} {error_type} {testid}] {msg}",
                     file=sys.stderr,
                 )
 
@@ -390,11 +377,7 @@ def validate_ID_sequence(tree):
             word_id, empty_id = (int(i) for i in parse_empty_node_id(cols))
             if word_id != current_word_id or empty_id != next_empty_id:
                 testid = "misplaced-empty-node"
-                testmessage = "Empty node id %s, expected %d.%d" % (
-                    cols[ID],
-                    current_word_id,
-                    next_empty_id,
-                )
+                testmessage = f"Empty node id {cols[ID]}, expected {current_word_id:d}.{next_empty_id:d}"
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             next_empty_id += 1
     # Now let's do some basic sanity checks on the sequences
@@ -404,10 +387,7 @@ def validate_ID_sequence(tree):
     )  # Words should form a sequence 1,2,...
     if wrdstrseq != expstrseq:
         testid = "word-id-sequence"
-        testmessage = "Words do not form a sequence. Got '%s'. Expected '%s'." % (
-            wrdstrseq,
-            expstrseq,
-        )
+        testmessage = f"Words do not form a sequence. Got '{wrdstrseq}'. Expected '{expstrseq}'."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
     # Check elementary sanity of word intervals.
     # Remember that these are not just multi-word tokens. Here we have intervals even for
@@ -490,8 +470,7 @@ def validate_sent_id(comments, known_ids, lcode):
             if c.startswith("# sent_id") or c.startswith("#sent_id"):
                 testid = "invalid-sent-id"
                 testmessage = (
-                    "Spurious sent_id line: '%s' Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
-                    % c
+                    f"Spurious sent_id line: '{c}' Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if not matched:
@@ -515,8 +494,7 @@ def validate_sent_id(comments, known_ids, lcode):
         ):
             testid = "slash-in-sent-id"
             testmessage = (
-                "The forward slash is reserved for special use in parallel treebanks: '%s'"
-                % sid
+                f"The forward slash is reserved for special use in parallel treebanks: '{sid}'"
             )
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         known_ids.add(sid)
@@ -600,8 +578,8 @@ def validate_text_meta(comments, tree):
                 if not mismatch_reported:
                     testid = "text-form-mismatch"
                     testmessage = (
-                        "Mismatch between the text attribute and the FORM field. Form[%s] is '%s' but text is '%s...'"
-                        % (cols[ID], cols[FORM], stext[: len(cols[FORM]) + 20])
+                        f"Mismatch between the text attribute and the FORM field. Form[{cols[ID]}]"
+                        f" is {cols[FORM]!r} but text is '{stext[: len(cols[FORM]) + 20]}...'"
                     )
                     warn(
                         testmessage,
@@ -1233,9 +1211,7 @@ def build_tree(sentence):
     unreachable = set(range(1, len(tree["nodes"]) - 1)) - projection
     if unreachable:
         testid = "non-tree"
-        testmessage = "Non-tree structure. Words {0} are not reachable from the root 0.".format(
-            ",".join(str(w) for w in sorted(unreachable))
-        )
+        testmessage = f"Non-tree structure. Words {','.join(str(w) for w in sorted(unreachable))} are not reachable from the root 0."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
         return None
     return tree
@@ -1762,16 +1738,7 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-cc"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"'{pdeprel}' not expected to have children ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel} --> {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,
@@ -1939,10 +1906,7 @@ def validate_goeswith_span(id, tree):
         # All nodes between me and my last goeswith child should be goeswith too.
         if gwlist != gwrange:
             testid = "goeswith-gap"
-            testmessage = (
-                "Violation of guidelines: gaps in goeswith group %s != %s."
-                % (str(gwlist), str(gwrange))
-            )
+            testmessage = f"Violation of guidelines: gaps in goeswith group {gwlist} != {gwrange}."
             warn(
                 testmessage,
                 testclass,
@@ -2003,7 +1967,7 @@ def validate_fixed_span(id, tree):
             testlevel = 3
             testclass = "Syntax"
             testid = "fixed-gap"
-            testmessage = "Gaps in fixed expression %s" % str(fxlist)
+            testmessage = f"Gaps in fixed expression {fxlist}"
             warn(
                 testmessage,
                 testclass,
@@ -2041,10 +2005,7 @@ def validate_projective_punctuation(id, tree):
         gap = get_gap(id, tree)
         if gap:
             testid = "punct-is-nonproj"
-            testmessage = (
-                "Punctuation must not be attached non-projectively over nodes %s"
-                % sorted(gap)
-            )
+            testmessage = f"Punctuation must not be attached non-projectively over nodes {sorted(gap)}"
             warn(
                 testmessage,
                 testclass,
@@ -2097,8 +2058,9 @@ def validate_enhanced_annotation(graph):
                 if line_of_first_enhanced_orphan:
                     testid = "empty-node-after-eorphan"
                     testmessage = (
-                        "Empty node means that we address gapping and there should be no orphans in the enhanced graph; but we saw one on line %s"
-                        % line_of_first_enhanced_orphan
+                        "Empty node means that we address gapping and there should"
+                        " be no orphans in the enhanced graph; but we saw one on"
+                        f" line {line_of_first_enhanced_orphan}"
                     )
                     warn(
                         testmessage,
@@ -2117,8 +2079,8 @@ def validate_enhanced_annotation(graph):
             if line_of_first_empty_node:
                 testid = "eorphan-after-empty-node"
                 testmessage = (
-                    "'orphan' not allowed in enhanced graph because we saw an empty node on line %s"
-                    % line_of_first_empty_node
+                    f"'orphan' not allowed in enhanced graph because we saw"
+                    " an empty node on line {line_of_first_empty_node}"
                 )
                 warn(
                     testmessage,
@@ -2157,8 +2119,8 @@ def validate_whitespace(cols, tag_sets):
                 warn_on_missing_files.add("tokens_w_space")
                 testid = "invalid-word-with-space"
                 testmessage = (
-                    "'%s' in column %s is not on the list of exceptions allowed to contain whitespace (data/tokens_w_space.LANG files)."
-                    % (cols[col_idx], COLNAMES[col_idx])
+                    f"'{cols[col_idx]}' in column {COLNAMES[col_idx]} is not on the list of"
+                    " exceptions allowed to contain whitespace (data/tokens_w_space.LANG files)."
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
@@ -2788,8 +2750,8 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
             testclass = "Morpho"
             testid = "aux-lemma"
             testmessage = (
-                "'%s' is not an auxiliary verb in language [%s] (there are no known approved auxiliaries in this language)"
-                % (cols[LEMMA], lang)
+                f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
+                " (there are no known approved auxiliaries in this language)"
             )
             warn(
                 testmessage,
@@ -2803,10 +2765,7 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
             testlevel = 5
             testclass = "Morpho"
             testid = "aux-lemma"
-            testmessage = "'%s' is not an auxiliary verb in language [%s]" % (
-                cols[LEMMA],
-                lang,
-            )
+            testmessage = f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
             warn(
                 testmessage,
                 testclass,
@@ -2960,8 +2919,8 @@ def validate_copula_lemmas(cols, children, nodes, line, lang):
             testclass = "Syntax"
             testid = "cop-lemma"
             testmessage = (
-                "'%s' is not a copula in language [%s] (there are no known approved copulas in this language)"
-                % (cols[LEMMA], lang)
+                f"'{cols[LEMMA]}' is not a copula in language [{lang}]"
+                " (there are no known approved copulas in this language)"
             )
             warn(
                 testmessage,
@@ -3133,8 +3092,7 @@ def load_set(
                         testclass = "Enhanced"
                         testid = "malformed-relation"
                         testmessage = (
-                            "Spurious language-specific enhanced relation '%s' - it does not match the regular expression that restricts enhanced relations."
-                            % v
+                            f"Spurious language-specific enhanced relation '{v}' - it does not match the regular expression that restricts enhanced relations."
                         )
                         warn(
                             testmessage,
@@ -3154,8 +3112,7 @@ def load_set(
                         testclass = "Syntax"
                         testid = "malformed-relation"
                         testmessage = (
-                            "Spurious language-specific relation '%s' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
-                            % v
+                            f"Spurious language-specific relation '{v}' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
                         )
                         warn(
                             testmessage,
@@ -3172,8 +3129,7 @@ def load_set(
                             testlevel = 4
                             testclass = "Syntax"
                             testmessage = (
-                                "Spurious language-specific relation '%s' - not an extension of any UD relation."
-                                % v
+                                f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
                             )
                             warn(
                                 testmessage,
@@ -3188,8 +3144,7 @@ def load_set(
                         testlevel = 4
                         testclass = "Syntax"
                         testmessage = (
-                            "Spurious language-specific relation '%s' - not an extension of any UD relation."
-                            % v
+                            f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
                         )
                         warn(
                             testmessage,
@@ -3285,8 +3240,7 @@ if __name__ == "__main__":
     # Level of validation
     if args.level < 1:
         print(
-            "Option --level must not be less than 1; changing from %d to 1"
-            % args.level,
+            f"Option --level must not be less than 1; changing from {args.level:d} to 1",
             file=sys.stderr,
         )
         args.level = 1
@@ -3366,8 +3320,7 @@ if __name__ == "__main__":
             for k, v in sorted(error_counter.items()):
                 print(f"{k} errors: {v:d}", file=sys.stderr)
             print(
-                "*** FAILED *** with %d errors"
-                % sum(v for k, v in iter(error_counter.items())),
+                "*** FAILED *** with {0} errors".format(sum(v for k, v in iter(error_counter.items()))),
                 file=sys.stderr,
             )
         for f_name in sorted(warn_on_missing_files):

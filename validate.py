@@ -2,23 +2,26 @@
 
 # TODO: replace huge string matching by set membership testing
 # TODO: refactor the test message blocks into warning classes
-# TODO: make a more extensible interface  (have a look at https://github.com/PyCQA/pycodestyle/blob/master/pycodestyle.py)
+# TODO: make a more extensible interface (have a look at
+# https://github.com/PyCQA/pycodestyle/blob/master/pycodestyle.py)
 
 # Original code (2015) by Filip Ginter and Sampo Pyysalo.
 # DZ 2018-11-04: Porting the validator to Python 3.
-import sys
+
+import argparse
 import io
 import os.path
-import argparse
+import sys
 import traceback
+import typing
+import unicodedata
+from collections import Counter
 
 # According to https://stackoverflow.com/questions/1832893/python-regex-matching-unicode-properties,
 # the regex module has the same API as re but it can check Unicode character properties using \p{}
 # as in Perl.
 # import re
 import regex as re
-import unicodedata
-
 
 THISDIR = os.path.dirname(
     os.path.realpath(os.path.abspath(__file__))
@@ -27,7 +30,18 @@ THISDIR = os.path.dirname(
 # Constants for the column indices
 COLCOUNT = 10
 ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC = range(COLCOUNT)
-COLNAMES = ("ID", "FORM", "LEMMA", "UPOS", "XPOS", "FEATS", "HEAD", "DEPREL", "DEPS", "MISC")
+COLNAMES = (
+    "ID",
+    "FORM",
+    "LEMMA",
+    "UPOS",
+    "XPOS",
+    "FEATS",
+    "HEAD",
+    "DEPREL",
+    "DEPS",
+    "MISC",
+)
 TOKENSWSPACE = MISC + 1  # one extra constant
 
 # Global variables:
@@ -37,15 +51,14 @@ sentence_id = None  # The most recently read sentence id
 line_of_first_empty_node = None
 line_of_first_enhanced_orphan = None
 
-error_counter = {}  # key: error type value: error count
- # langspec files which you should warn about in case they are missing (can be deprel, edeprel,
- # feat_val, tokens_w_space)
+# langspec files which you should warn about in case they are missing (can be deprel, edeprel,
+# feat_val, tokens_w_space)
 warn_on_missing_files = set()
 
 
 def warn(
-    msg,
-    error_type,
+    msg: str,
+    error_type: str,
     testlevel=0,
     testid="some-test",
     lineno=True,
@@ -63,7 +76,7 @@ def warn(
     If lineno is False, print the number and starting line of the current tree.
     """
     global curr_fname, curr_line, sentence_line, sentence_id, error_counter, tree_counter, args
-    error_counter[error_type] = error_counter.get(error_type, 0) + 1
+    error_counter[error_type] += 1
     if not args.quiet:
         if args.max_err > 0 and error_counter[error_type] == args.max_err:
             print(
@@ -83,7 +96,8 @@ def warn(
             sent = ""
             node = ""
             # Global variable (last read sentence id): sentence_id
-            # Originally we used a parameter sid but we probably do not need to override the global value.
+            # Originally we used a parameter sid but we probably do not need to override the global
+            # value.
             if sentence_id:
                 sent = " Sent " + sentence_id
             if nodeid:
@@ -118,7 +132,7 @@ def warn(
                 )
 
 
-###### Support functions
+# ##### Support functions
 
 
 def is_whitespace(line):
@@ -174,12 +188,13 @@ def trees(inp, tag_sets, args):
     testclass = "Format"
     for line_counter, line in enumerate(inp):
         curr_line = line_counter + 1
-        line = line.rstrip(u"\n")
+        line = line.rstrip("\n")
         if is_whitespace(line):
             testid = "pseudo-empty-line"
             testmessage = "Spurious line that appears empty but is not; there are whitespace characters."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
-            # We will pretend that the line terminates a sentence in order to avoid subsequent misleading error messages.
+            # We will pretend that the line terminates a sentence in order to avoid subsequent
+            # misleading error messages.
             if lines:
                 yield comments, lines
                 comments = []
@@ -211,7 +226,7 @@ def trees(inp, tag_sets, args):
             validate_unicode_normalization(line)
             if not lines:  # new sentence
                 sentence_line = curr_line
-            cols = line.split(u"\t")
+            cols = line.split("\t")
             if len(cols) != COLCOUNT:
                 testid = "number-of-columns"
                 testmessage = "The line has %d columns but %d are expected." % (
@@ -238,7 +253,7 @@ def trees(inp, tag_sets, args):
             yield comments, lines
 
 
-###### Tests applicable to a single row indpendently of the others
+# ##### Tests applicable to a single row indpendently of the others
 
 
 def validate_unicode_normalization(text):
@@ -336,7 +351,7 @@ def validate_cols_level1(cols):
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-##### Tests applicable to the whole tree
+# #### Tests applicable to the whole tree
 
 interval_re = re.compile(r"^([0-9]+)-([0-9]+)$", re.U)
 
@@ -364,9 +379,8 @@ def validate_ID_sequence(tree):
                 )  # nope - let's make a default interval for it
         elif is_multiword_token(cols):
             match = interval_re.match(cols[ID])  # Check the interval against the regex
-            if (
-                not match
-            ):  # This should not happen. The function is_multiword_token() would then not return True.
+            # This should not happen. The function is_multiword_token() would then not return True.
+            if not match:
                 testid = "invalid-word-interval"
                 testmessage = "Spurious word interval definition: '%s'." % cols[ID]
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
@@ -437,9 +451,9 @@ def validate_token_ranges(tree):
             continue
         start, end = m.groups()
         start, end = int(start), int(end)
-        if (
-            not start < end
-        ):  ###!!! This was already tested above in validate_ID_sequence()! Should we remove it from there?
+        # ##!!! This was already tested above in validate_ID_sequence()! Should we remove it from
+        # there?
+        if not start < end:
             testid = "reversed-word-interval"
             testmessage = "Spurious token interval %d-%d" % (start, end)
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
@@ -467,7 +481,7 @@ def validate_newlines(inp):
 # specific guidelines may permit it).
 # ==============================================================================
 
-###### Metadata tests #########
+# ##### Metadata tests # ########
 
 
 def validate_sent_id(comments, known_ids, lcode):
@@ -502,8 +516,8 @@ def validate_sent_id(comments, known_ids, lcode):
             testid = "non-unique-sent-id"
             testmessage = "Non-unique sent_id attribute '%s'." % sid
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
-        if sid.count(u"/") > 1 or (
-            sid.count(u"/") == 1 and lcode != u"ud" and lcode != u"shopen"
+        if sid.count("/") > 1 or (
+            sid.count("/") == 1 and lcode != "ud" and lcode != "shopen"
         ):
             testid = "slash-in-sent-id"
             testmessage = (
@@ -541,9 +555,8 @@ def validate_text_meta(comments, tree):
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         # Validate the text against the SpaceAfter attribute in MISC.
         skip_words = set()
-        mismatch_reported = (
-            0
-        )  # do not report multiple mismatches in the same sentence; they usually have the same cause
+        # do not report multiple mismatches in the same sentence; they usually have the same cause
+        mismatch_reported = 0
         for cols in tree:
             if MISC >= len(cols):
                 # This error has been reported elsewhere but we cannot check MISC now.
@@ -568,22 +581,27 @@ def validate_text_meta(comments, tree):
                 beg, end = cols[ID].split("-")
                 try:
                     begi, endi = int(beg), int(end)
-                except ValueError as e:
+                except ValueError:
                     # This error has been reported elsewhere.
                     begi, endi = 1, 0
-                # If we see a multi-word token, add its words to an ignore-set - these will be skipped, and also checked for absence of SpaceAfter=No
+                # If we see a multi-word token, add its words to an ignore-set - these will be
+                # skipped, and also checked for absence of SpaceAfter=No
                 for i in range(begi, endi + 1):
                     skip_words.add(str(i))
             elif cols[ID] in skip_words:
                 if "SpaceAfter=No" in cols[MISC]:
                     testid = "spaceafter-mwt-node"
-                    testmessage = "'SpaceAfter=No' cannot occur with words that are part of a multi-word token."
+                    testmessage = (
+                        "'SpaceAfter=No' cannot occur with words that are part of a multi-word"
+                        " token."
+                    )
                     warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                 continue
             else:
                 # Err, I guess we have nothing to do here. :)
                 pass
-            # So now we have either a multi-word token or a word which is also a token in its entirety.
+            # So now we have either a multi-word token or a word which is also a token in its
+            # entirety.
             if not stext.startswith(cols[FORM]):
                 if not mismatch_reported:
                     testid = "text-form-mismatch"
@@ -619,7 +637,7 @@ def validate_text_meta(comments, tree):
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-##### Tests applicable to a single row indpendently of the others
+# #### Tests applicable to a single row indpendently of the others
 
 
 def validate_cols(cols, tag_sets, args):
@@ -644,9 +662,10 @@ def validate_cols(cols, tag_sets, args):
         # - DEPS are connected and non-acyclic
         # (more, what?)
     if args.level > 3:
+        # level 4 (it is language-specific; to disallow everywhere, use --lang ud)
         validate_whitespace(
             cols, tag_sets
-        )  # level 4 (it is language-specific; to disallow everywhere, use --lang ud)
+        )  
 
 
 def validate_token_empty_vals(cols):
@@ -656,7 +675,9 @@ def validate_token_empty_vals(cols):
     therefore a level 2 test.
     """
     if not is_multiword_token(cols):
-        raise ValueError(f"Validating multiword empty values only makes sense for multiword tokens")
+        raise ValueError(
+            f"Validating multiword empty values only makes sense for multiword tokens"
+        )
     for col_idx in range(
         LEMMA, MISC
     ):  # all columns except the first two (ID, FORM) and the last one (MISC)
@@ -678,7 +699,9 @@ def validate_empty_node_empty_vals(cols):
     a level 2 test.
     """
     if not is_empty_node(cols):
-        raise ValueError(f"Validating empty node empty values only makes sense for empty nodes")
+        raise ValueError(
+            f"Validating empty node empty values only makes sense for empty nodes"
+        )
     for col_idx in (HEAD, DEPREL):
         if cols[col_idx] != "_":
             testlevel = 2
@@ -732,7 +755,7 @@ def validate_character_constraints(cols):
         testmessage = "Invalid DEPREL value '%s'." % cols[DEPREL]
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     try:
-        deps = deps_list(cols)
+        deps_list(cols)
     except ValueError:
         testclass = "Enhanced"
         testid = "invalid-deps"
@@ -889,7 +912,7 @@ def validate_deprels(cols, tag_sets, args):
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-##### Tests applicable to the whole sentence
+# #### Tests applicable to the whole sentence
 
 
 def subset_to_words_and_empty_nodes(tree):
@@ -1087,7 +1110,7 @@ def validate_deps(tree):
                         )
                 lasth = h
                 lastd = d
-                ###!!! This is now also tested above in validate_root(). We must reorganize testing of the enhanced structure so that the same thing is not tested multiple times.
+                # ##!!! This is now also tested above in validate_root(). We must reorganize testing of the enhanced structure so that the same thing is not tested multiple times.
                 # Like in the basic representation, head 0 implies relation root and vice versa.
                 # Note that the enhanced graph may have multiple roots (coordination of predicates).
                 # ud = lspec2ud(d)
@@ -1375,7 +1398,7 @@ def validate_upos_vs_deprel(id, tree):
     if (
         deprel == "det"
         and not re.match(r"^(DET|PRON)", cols[UPOS])
-        and not "fixed" in childrels
+        and "fixed" not in childrels
     ):
         testid = "rel-upos-det"
         testmessage = "'det' should be 'DET' or 'PRON' but it is '%s'" % (cols[UPOS])
@@ -1410,8 +1433,8 @@ def validate_upos_vs_deprel(id, tree):
     if (
         deprel == "advmod"
         and not re.match(r"^(ADV|ADJ|CCONJ|DET|PART|SYM)", cols[UPOS])
-        and not "fixed" in childrels
-        and not "goeswith" in childrels
+        and "fixed" not in childrels
+        and "goeswith" not in childrels
     ):
         testid = "rel-upos-advmod"
         testmessage = "'advmod' should be 'ADV' but it is '%s'" % (cols[UPOS])
@@ -1483,7 +1506,7 @@ def validate_upos_vs_deprel(id, tree):
     if (
         deprel == "case"
         and re.match(r"^(PROPN|ADJ|PRON|DET|NUM|AUX)", cols[UPOS])
-        and not "fixed" in childrels
+        and "fixed" not in childrels
     ):
         testid = "rel-upos-case"
         testmessage = "'case' should not be '%s'" % (cols[UPOS])
@@ -1499,7 +1522,7 @@ def validate_upos_vs_deprel(id, tree):
     if (
         deprel == "mark"
         and re.match(r"^(NOUN|PROPN|ADJ|PRON|DET|NUM|VERB|AUX|INTJ)", cols[UPOS])
-        and not "fixed" in childrels
+        and "fixed" not in childrels
     ):
         testid = "rel-upos-mark"
         testmessage = "'mark' should not be '%s'" % (cols[UPOS])
@@ -1515,7 +1538,7 @@ def validate_upos_vs_deprel(id, tree):
     if (
         deprel == "cc"
         and re.match(r"^(NOUN|PROPN|ADJ|PRON|DET|NUM|VERB|AUX|INTJ)", cols[UPOS])
-        and not "fixed" in childrels
+        and "fixed" not in childrels
     ):
         testid = "rel-upos-cc"
         testmessage = "'cc' should not be '%s'" % (cols[UPOS])
@@ -1675,8 +1698,8 @@ def validate_functional_leaves(id, tree):
         for idchild in tree["children"][id]:
             # This is a level 3 test, we will check only the universal part of the relation.
             pdeprel = lspec2ud(tree["nodes"][idparent][DEPREL])
-            ###!!! We should also check that 'det' does not have children except for a limited set of exceptions!
-            ###!!! (see https://universaldependencies.org/u/overview/syntax.html#function-word-modifiers)
+            # ##!!! We should also check that 'det' does not have children except for a limited set of exceptions!
+            # ##!!! (see https://universaldependencies.org/u/overview/syntax.html#function-word-modifiers)
             cdeprel = lspec2ud(tree["nodes"][idchild][DEPREL])
             # The guidelines explicitly say that negation can modify any function word
             # (see https://universaldependencies.org/u/overview/syntax.html#function-word-modifiers).
@@ -1750,10 +1773,10 @@ def validate_functional_leaves(id, tree):
                     nodeid=id,
                     nodelineno=tree["linenos"][idchild],
                 )
-            ###!!! The pdeprel regex in the following test should probably include "det".
-            ###!!! I forgot to add it well in advance of release 2.4, so I am leaving it
-            ###!!! out for now, so that people don't have to deal with additional load
-            ###!!! of errors.
+            # ##!!! The pdeprel regex in the following test should probably include "det".
+            # ##!!! I forgot to add it well in advance of release 2.4, so I am leaving it
+            # ##!!! out for now, so that people don't have to deal with additional load
+            # ##!!! of errors.
             if re.match(r"^(aux|cop)$", pdeprel) and not re.match(
                 r"^(goeswith|fixed|reparandum|conj|cc|punct)$", cdeprel
             ):
@@ -1805,11 +1828,11 @@ def validate_functional_leaves(id, tree):
             # Fixed expressions should not be nested, i.e., no chains of fixed relations.
             # As they are supposed to represent functional elements, they should not have
             # other dependents either, with the possible exception of conj.
-            ###!!! We also allow a punct child, at least temporarily, because of fixed
-            ###!!! expressions that have a hyphen in the middle (e.g. Russian "вперед-назад").
-            ###!!! It would be better to keep these expressions as one token. But sometimes
-            ###!!! the tokenizer is out of control of the UD data providers and it is not
-            ###!!! practical to retokenize.
+            # ##!!! We also allow a punct child, at least temporarily, because of fixed
+            # ##!!! expressions that have a hyphen in the middle (e.g. Russian "вперед-назад").
+            # ##!!! It would be better to keep these expressions as one token. But sometimes
+            # ##!!! the tokenizer is out of control of the UD data providers and it is not
+            # ##!!! practical to retokenize.
             elif pdeprel == "fixed" and not re.match(
                 r"^(goeswith|reparandum|conj|punct)$", cdeprel
             ):
@@ -2027,7 +2050,7 @@ def validate_fixed_span(id, tree):
     distinguish fatal errors from warnings and then this test will perhaps be
     just a warning.
     """
-    return  ###!!! temporarily turned off
+    return  # ##!!! temporarily turned off
     fxchildren = sorted(
         [
             i
@@ -2132,7 +2155,7 @@ def validate_enhanced_annotation(graph):
     for id in graph.keys():
         if is_empty_node(graph[id]["cols"]):
             if not line_of_first_empty_node:
-                ###!!! This may not be exactly the first occurrence because the ids (keys) are not sorted.
+                # ##!!! This may not be exactly the first occurrence because the ids (keys) are not sorted.
                 line_of_first_empty_node = graph[id]["lineno"]
                 # Empty node itself is not an error. Report it only for the first time
                 # and only if an orphan occurred before it.
@@ -2153,7 +2176,7 @@ def validate_enhanced_annotation(graph):
         udeprels = set([lspec2ud(d) for h, d in graph[id]["deps"]])
         if "orphan" in udeprels:
             if not line_of_first_enhanced_orphan:
-                ###!!! This may not be exactly the first occurrence because the ids (keys) are not sorted.
+                # ##!!! This may not be exactly the first occurrence because the ids (keys) are not sorted.
                 line_of_first_enhanced_orphan = graph[id]["lineno"]
             # If we have seen an empty node, then the orphan is an error.
             if line_of_first_empty_node:
@@ -2222,7 +2245,7 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
       'line' ....... line number of the node within the file
     """
     if cols[UPOS] == "AUX" and cols[LEMMA] != "_":
-        ###!!! In the future, lists like this one will be read from a file.
+        # ##!!! In the future, lists like this one will be read from a file.
         auxdict = {
             # ChrisManning 2019/04: Allow 'get' as aux for get passive construction. And 'ought'
             "en": [
@@ -2871,7 +2894,7 @@ def validate_copula_lemmas(cols, children, nodes, line, lang):
       'line' ....... line number of the node within the file
     """
     if cols[DEPREL] == "cop" and cols[LEMMA] != "_":
-        ###!!! In the future, lists like this one will be read from a file.
+        # ##!!! In the future, lists like this one will be read from a file.
         # The UD guidelines narrow down the class of copulas to just the equivalent of "to be" (equivalence).
         # Other verbs that may be considered copulas by the traditional grammar (such as the equivalents of
         # "to become" or "to seem") are not copulas in UD; they head the nominal predicate, which is their xcomp.
@@ -3032,8 +3055,8 @@ def validate_lspec_annotation(tree, lang):
     """
     Checks language-specific consequences of the annotation guidelines.
     """
-    ###!!! Building the information about the tree is repeated and has been done in the other functions before.
-    ###!!! We should remember the information and not build it several times!
+    # ##!!! Building the information about the tree is repeated and has been done in the other functions before.
+    # ##!!! We should remember the information and not build it several times!
     global sentence_line  # the line of the first token/word of the current tree (skipping comments!)
     node_line = sentence_line - 1
     lines = {}  # node id -> line number of that node (for error messages)
@@ -3052,13 +3075,13 @@ def validate_lspec_annotation(tree, lang):
             # Do not continue to check annotation if there are elementary flaws.
             return
         try:
-            id_ = int(cols[ID])
+            int(cols[ID])  # check id
         except ValueError:
             # This error has been reported on lower levels, do not report it here.
             # Do not continue to check annotation if there are elementary flaws.
             return
         try:
-            head = int(cols[HEAD])
+            int(cols[HEAD])  # check head
         except ValueError:
             # This error has been reported on lower levels, do not report it here.
             # Do not continue to check annotation if there are elementary flaws.
@@ -3126,7 +3149,7 @@ def validate(inp, out, args, tag_sets, known_sent_ids):
     validate_newlines(inp)  # level 1
 
 
-def load_file(f_name):
+def load_file(f_name: str) -> typing.Set[str]:
     res = set()
     with io.open(f_name, "r", encoding="utf-8") as f:
         for line in f:
@@ -3138,8 +3161,11 @@ def load_file(f_name):
 
 
 def load_set(
-    f_name_ud, f_name_langspec, validate_langspec=False, validate_enhanced=False
-):
+    f_name_ud: str,
+    f_name_langspec: typing.Optional[str],
+    validate_langspec: bool = False,
+    validate_enhanced: bool = False,
+) -> typing.Optional[typing.Set[str]]:
     """
     Loads a list of values from the two files, and returns their
     set. If f_name_langspec doesn't exist, loads nothing and returns
@@ -3170,6 +3196,7 @@ def load_set(
                     if not edeprel_re.match(v):
                         testlevel = 4
                         testclass = "Enhanced"
+                        testid = "malformed-relation"
                         testmessage = (
                             "Spurious language-specific enhanced relation '%s' - it does not match the regular expression that restricts enhanced relations."
                             % v
@@ -3190,6 +3217,7 @@ def load_set(
                     if not re.match(r"^[a-z]+(:[a-z]+)?$", v):
                         testlevel = 4
                         testclass = "Syntax"
+                        testid = "malformed-relation"
                         testmessage = (
                             "Spurious language-specific relation '%s' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
                             % v
@@ -3220,6 +3248,7 @@ def load_set(
                                 lineno=False,
                             )
                             continue
+                    # FIXME: bare except is bad form, come back later
                     except:
                         testlevel = 4
                         testclass = "Syntax"
@@ -3314,7 +3343,8 @@ if __name__ == "__main__":
     )
 
     args = opt_parser.parse_args()  # Parsed command-line arguments
-    error_counter = {}  # Incremented by warn()  {key: error type value: its count}
+    # Incremented by warn()  {key: error type value: its count}
+    error_counter: typing.Counter[str] = Counter()
     tree_counter = 0
 
     # Level of validation
@@ -3332,14 +3362,15 @@ if __name__ == "__main__":
     if args.level < 4:
         args.lang = "ud"
 
-    tagsets = {
+    # sets of tags for every column that needs to be checked, plus (in v2) other sets, like the allowed tokens with space
+    tagsets: typing.Dict[int, typing.Optional[typing.Set[str]]] = {
         XPOS: None,
         UPOS: None,
         FEATS: None,
         DEPREL: None,
         DEPS: None,
         TOKENSWSPACE: None,
-    }  # sets of tags for every column that needs to be checked, plus (in v2) other sets, like the allowed tokens with space
+    }
 
     if args.lang:
         tagsets[DEPREL] = load_set(
@@ -3349,24 +3380,27 @@ if __name__ == "__main__":
         # In addition, there might be relations that are only allowed in DEPS.
         # One of them, "ref", is universal and we currently mention it directly
         # in the code, although there is also a file "edeprel.ud".
-        tagsets[DEPS] = (
-            tagsets[DEPREL]
-            | {"ref"}
-            | load_set("deprel.ud", "edeprel." + args.lang, validate_enhanced=True)
+        loaded_deps = load_set("deprel.ud", "edeprel." + args.lang, validate_enhanced=True)
+        tagsets[DEPS] = set().union(
+            tagsets[DEPREL] if tagsets[DEPREL] is not None else set(),
+            {"ref"},
+            loaded_deps if loaded_deps is not None else set()
         )
         tagsets[FEATS] = load_set("feat_val.ud", "feat_val." + args.lang)
         tagsets[UPOS] = load_set("cpos.ud", None)
         tagsets[TOKENSWSPACE] = load_set(
             "tokens_w_space.ud", "tokens_w_space." + args.lang
         )
-        tagsets[TOKENSWSPACE] = [
-            re.compile(r, re.U) for r in tagsets[TOKENSWSPACE]
-        ]  # ...turn into compiled regular expressions
+        # ...turn into compiled regular expressions
+        if tagsets[TOKENSWSPACE] is not None:
+            tagsets[TOKENSWSPACE] = set(
+                re.compile(r, re.U) for r in tagsets[TOKENSWSPACE]
+            )
 
     out = sys.stdout  # hard-coding - does this ever need to be anything else?
 
     try:
-        known_sent_ids = set()
+        known_sent_ids: typing.Set[str] = set()
         open_files = []
         if args.input == []:
             args.input.append("-")
@@ -3379,7 +3413,8 @@ if __name__ == "__main__":
                 open_files.append(io.open(fname, "r", encoding="utf-8"))
         for curr_fname, inp in zip(args.input, open_files):
             validate(inp, out, args, tagsets, known_sent_ids)
-    except:
+    # FIXME: restrict this to a narrower exception class
+    except BaseException:
         warn("Exception caught!", "Format")
         # If the output is used in an HTML page, it must be properly escaped
         # because the traceback can contain e.g. "<module>". However, escaping

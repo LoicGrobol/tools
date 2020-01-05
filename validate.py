@@ -236,7 +236,9 @@ def trees(
             cols = line.split("\t")
             if len(cols) != COLCOUNT:
                 testid = "number-of-columns"
-                testmessage = f"The line has {len(cols)} columns but {COLCOUNT} are expected."
+                testmessage = (
+                    f"The line has {len(cols)} columns but {COLCOUNT} are expected."
+                )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             lines.append(cols)
             validate_cols_level1(cols)
@@ -244,9 +246,7 @@ def trees(
                 validate_cols(cols, tag_sets, args)
         else:  # A line which is neither a comment nor a token/word, nor empty. That's bad!
             testid = "invalid-line"
-            testmessage = (
-                f"Spurious line: {line!r} All non-empty lines should start with a digit or the # character."
-            )
+            testmessage = f"Spurious line: {line!r} All non-empty lines should start with a digit or the # character."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     else:  # end of file
         if comments or lines:  # These should have been yielded on an empty line!
@@ -287,9 +287,7 @@ def validate_unicode_normalization(text):
         testlevel = 1
         testclass = "Unicode"
         testid = "unicode-normalization"
-        testmessage = (
-            f"Unicode not normalized: {COLNAMES[firsti]!r}.character[{firstj}] is {inpfirst!r}, should be {nfcfirst}."
-        )
+        testmessage = f"Unicode not normalized: {COLNAMES[firsti]!r}.character[{firstj}] is {inpfirst!r}, should be {nfcfirst}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -317,18 +315,20 @@ def validate_cols_level1(cols):
             # Must never have leading/trailing whitespace
             if cols[col_idx][0].isspace():
                 testid = "leading-whitespace"
-                testmessage = f"Leading whitespace not allowed in column {COLNAMES[col_idx]}."
+                testmessage = (
+                    f"Leading whitespace not allowed in column {COLNAMES[col_idx]}."
+                )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             if cols[col_idx][-1].isspace():
                 testid = "trailing-whitespace"
-                testmessage = f"Trailing whitespace not allowed in column {COLNAMES[col_idx]}."
+                testmessage = (
+                    f"Trailing whitespace not allowed in column {COLNAMES[col_idx]}."
+                )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             # Must never contain two consecutive whitespace characters
             if whitespace2_re.match(cols[col_idx]):
                 testid = "repeated-whitespace"
-                testmessage = (
-                    f"Two or more consecutive whitespace characters not allowed in column {COLNAMES[col_idx]}."
-                )
+                testmessage = f"Two or more consecutive whitespace characters not allowed in column {COLNAMES[col_idx]}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     # These columns must not have whitespace
     for col_idx in (ID, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS):
@@ -617,17 +617,14 @@ def validate_text_meta(comments, tree):
                     if args.check_space_after and (stext) and not stext[0].isspace():
                         testid = "missing-spaceafter"
                         testmessage = (
-                            "'SpaceAfter=No' is missing in the MISC field of node #%s because the text is '%s'."
-                            % (cols[ID], shorten(cols[FORM] + stext))
+                            "'SpaceAfter=No' is missing in the MISC field of node #{cols[ID]}"
+                            f" because the text is {shorten(cols[FORM] + stext)!r}."
                         )
                         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                     stext = stext.lstrip()
         if stext:
             testid = "text-extra-chars"
-            testmessage = (
-                "Extra characters at the end of the text attribute, not accounted for in the FORM fields: '%s'"
-                % stext
-            )
+            testmessage = "Extra characters at the end of the text attribute, not accounted for in the FORM fields: {stext}"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -678,8 +675,8 @@ def validate_token_empty_vals(cols):
             testclass = "Format"
             testid = "mwt-nonempty-field"
             testmessage = (
-                "A multi-word token line must have '_' in the column %s. Now: '%s'."
-                % (COLNAMES[col_idx], cols[col_idx])
+                f"A multi-word token line must have '_' in the column {COLNAMES[col_idx]}."
+                f" Now: {cols[col_idx]!r}."
             )
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
@@ -699,10 +696,7 @@ def validate_empty_node_empty_vals(cols):
             testlevel = 2
             testclass = "Format"
             testid = "mwt-nonempty-field"
-            testmessage = "An empty node must have '_' in the column %s. Now: '%s'." % (
-                COLNAMES[col_idx],
-                cols[col_idx],
-            )
+            testmessage = "An empty node must have '_' in the column {COLNAMES[col_idx]}. Now: {cols[col_idx]!r}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -717,7 +711,7 @@ edeprelpart_resrc = r"[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(_[\p{Ll}\p{Lm}\p{Lo}\p{M}]+)*"
 # One of them, the preposition, may contain Unicode letters. We do not know which one it is
 # (only if there are all four parts, we know it is the third one).
 # ^[a-z]+(:[a-z]+)?(:[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(_[\p{Ll}\p{Lm}\p{Lo}\p{M}]+)*)?(:[a-z]+)?$
-edeprel_resrc = r"^[a-z]+(:[a-z]+)?(:" + edeprelpart_resrc + ")?(:[a-z]+)?$"
+edeprel_resrc = f"^[a-z]+(:[a-z]+)?(:{edeprelpart_resrc})?(:[a-z]+)?$"
 edeprel_re = re.compile(edeprel_resrc, re.U)
 
 
@@ -796,13 +790,13 @@ def validate_features(cols, tag_sets, args):
             testlevel = 2
             testid = "invalid-feature"
             testmessage = (
-                "Spurious morphological feature: '%s'. Should be of the form Feature=Value and must start with [A-Z0-9] and only contain [A-Za-z0-9]."
-                % f
+                f"Spurious morphological feature: {f!r}."
+                " Should be of the form Feature=Value and must start with [A-Z0-9]"
+                " and only contain [A-Za-z0-9]."
             )
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
-            attr_set.add(
-                f
-            )  # to prevent misleading error "Repeated features are disallowed"
+            # to prevent misleading error "Repeated features are disallowed"
+            attr_set.add(f)
         else:
             # Check that the values are sorted as well
             attr = match.group(1)
@@ -825,8 +819,8 @@ def validate_features(cols, tag_sets, args):
                     testlevel = 2
                     testid = "invalid-feature-value"
                     testmessage = (
-                        "Spurious value '%s' in '%s'. Must start with [A-Z0-9] and only contain [A-Za-z0-9]."
-                        % (v, f)
+                        "Spurious value {v!r} in {f!r}."
+                        " Must start with [A-Z0-9] and only contain [A-Za-z0-9]."
                     )
                     warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                 # Level 2 tests character properties and canonical order but not that the f-v pair is known.
@@ -897,9 +891,8 @@ def validate_deprels(cols, tag_sets, args):
                 warn_on_missing_files.add("edeprel")
                 testclass = "Enhanced"
                 testid = "unknown-edeprel"
-                testmessage = "Unknown enhanced relation type '%s' in '%s'" % (
-                    deprel,
-                    head_deprel,
+                testmessage = (
+                    f"Unknown enhanced relation type {deprel!r} in {head_deprel!r}"
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
@@ -1075,10 +1068,7 @@ def validate_deps(tree):
                     if d < lastd:
                         testclass = "Format"
                         testid = "unsorted-deps-2"
-                        testmessage = (
-                            "DEPS pointing to head '%s' not sorted by relation type: '%s'"
-                            % (h, cols[DEPS])
-                        )
+                        testmessage = f"DEPS pointing to head '{h}' not sorted by relation type: '{cols[DEPS]}'"
                         warn(
                             testmessage,
                             testclass,
@@ -1089,10 +1079,7 @@ def validate_deps(tree):
                     elif d == lastd:
                         testclass = "Format"
                         testid = "repeated-deps"
-                        testmessage = (
-                            "DEPS contain multiple instances of the same relation '%s:%s'"
-                            % (h, d)
-                        )
+                        testmessage = f"DEPS contain multiple instances of the same relation '{h}:{d}'"
                         warn(
                             testmessage,
                             testclass,
@@ -1246,9 +1233,8 @@ def build_tree(sentence):
     unreachable = set(range(1, len(tree["nodes"]) - 1)) - projection
     if unreachable:
         testid = "non-tree"
-        testmessage = (
-            "Non-tree structure. Words %s are not reachable from the root 0."
-            % (",".join(str(w) for w in sorted(unreachable)))
+        testmessage = "Non-tree structure. Words {0} are not reachable from the root 0.".format(
+            ",".join(str(w) for w in sorted(unreachable))
         )
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
         return None
@@ -1342,10 +1328,7 @@ def build_egraph(sentence):
         testlevel = 2
         testclass = "Enhanced"
         testid = "unconnected-egraph"
-        testmessage = (
-            "Enhanced graph is not connected. Nodes %s are not reachable from any root"
-            % sur
-        )
+        testmessage = f"Enhanced graph is not connected. Nodes {sur} are not reachable from any root"
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
         return None
     return egraph
@@ -1585,7 +1568,7 @@ def validate_left_to_right_relations(id, tree):
             # We must recognize the relation type in the test id so we can manage exceptions for legacy treebanks.
             # For conj, flat, and fixed the requirement was introduced already before UD 2.2, and all treebanks in UD 2.3 passed it.
             # For appos and goeswith the requirement was introduced before UD 2.4 and legacy treebanks are allowed to fail it.
-            testid = "right-to-left-%s" % lspec2ud(cols[DEPREL])
+            testid = f"right-to-left-{lspec2ud(cols[DEPREL])}"
             testmessage = f"Relation {cols[DEPREL]!r} must go left-to-right."
             warn(
                 testmessage,
@@ -1623,7 +1606,7 @@ def validate_single_subject(id, tree):
         testlevel = 3
         testclass = "Syntax"
         testid = "too-many-subjects"
-        testmessage = "Node has more than one subject: %s" % str(subjects)
+        testmessage = f"Node has more than one subject: {subjects}"
         warn(
             testmessage,
             testclass,
@@ -1660,10 +1643,7 @@ def validate_orphan(id, tree):
             testlevel = 3
             testclass = "Syntax"
             testid = "orphan-parent"
-            testmessage = (
-                "The parent of 'orphan' should normally be 'conj' but it is '%s'."
-                % (pdeprel)
-            )
+            testmessage = f"The parent of 'orphan' should normally be 'conj' but it is {pdeprel!r}."
             warn(
                 testmessage,
                 testclass,
@@ -1744,16 +1724,9 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-mark-case"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"{pdeprel!r} not expected to have children"
+                    f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
+                    f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,
@@ -1772,16 +1745,9 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-aux-cop"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"'{pdeprel}' not expected to have children"
+                    f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
+                    f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,
@@ -1828,16 +1794,9 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-fixed"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"'{pdeprel}' not expected to have children"
+                    f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
+                    f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,
@@ -1851,16 +1810,9 @@ def validate_functional_leaves(id, tree):
             elif pdeprel == "goeswith":
                 testid = "leaf-goeswith"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"'{pdeprel}' not expected to have children"
+                    f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
+                    f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,
@@ -1875,16 +1827,9 @@ def validate_functional_leaves(id, tree):
             elif pdeprel == "punct" and cdeprel != "punct":
                 testid = "leaf-punct"
                 testmessage = (
-                    "'%s' not expected to have children (%s:%s:%s --> %s:%s:%s)"
-                    % (
-                        pdeprel,
-                        idparent,
-                        tree["nodes"][idparent][FORM],
-                        pdeprel,
-                        idchild,
-                        tree["nodes"][idchild][FORM],
-                        cdeprel,
-                    )
+                    f"'{pdeprel}' not expected to have children"
+                    f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
+                    f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
                 warn(
                     testmessage,

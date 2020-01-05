@@ -56,14 +56,17 @@ line_of_first_enhanced_orphan = None
 warn_on_missing_files = set()
 
 
+Tagset = typing.Set[str]
+
+
 def warn(
     msg: str,
     error_type: str,
-    testlevel=0,
-    testid="some-test",
-    lineno=True,
-    nodelineno=0,
-    nodeid=0,
+    testlevel: int = 0,
+    testid: str = "some-test",
+    lineno: bool = True,
+    nodelineno: int = 0,
+    nodeid: int = 0,
 ):
     """
     Print the warning.
@@ -135,34 +138,34 @@ def warn(
 # ##### Support functions
 
 
-def is_whitespace(line):
+def is_whitespace(line: str):
     return line and line.isspace()
 
 
-def is_word(cols):
+def is_word(cols: typing.Sequence[str]):
     return re.match(r"^[1-9][0-9]*$", cols[ID])
 
 
-def is_multiword_token(cols):
+def is_multiword_token(cols: typing.Sequence[str]):
     return re.match(r"^[1-9][0-9]*-[1-9][0-9]*$", cols[ID])
 
 
-def is_empty_node(cols):
+def is_empty_node(cols: typing.Sequence[str]):
     return re.match(r"^[0-9]+\.[1-9][0-9]*$", cols[ID])
 
 
-def parse_empty_node_id(cols):
+def parse_empty_node_id(cols: typing.Sequence[str]):
     m = re.match(r"^([0-9]+)\.([0-9]+)$", cols[ID])
     if not m:
         raise ValueError("parse_empty_node_id with non-empty node")
     return m.groups()
 
 
-def shorten(string):
-    return string if len(string) < 25 else string[:20] + "[...]"
+def shorten(s: str):
+    return s if len(s) < 25 else s[:20] + "[...]"
 
 
-def lspec2ud(deprel):
+def lspec2ud(deprel: str):
     return deprel.split(":", 1)[0]
 
 
@@ -173,7 +176,9 @@ def lspec2ud(deprel):
 sentid_re = re.compile(r"^# sent_id\s*=\s*(\S+)$")
 
 
-def trees(inp, tag_sets, args):
+def trees(
+    inp: typing.Iterable[str], tag_sets: typing.Dict[str, typing.Optional[Tagset]], args
+):
     """
     `inp` a file-like object yielding lines as unicode
     `tag_sets` and `args` are needed for choosing the tests
@@ -182,8 +187,10 @@ def trees(inp, tag_sets, args):
     sentence at a time from the input stream.
     """
     global curr_line, sentence_line, sentence_id
-    comments = []  # List of comment lines to go with the current sentence
-    lines = []  # List of token/word lines of the current sentence
+    # List of comment lines to go with the current sentence
+    comments: typing.List[str] = []
+    # List of token/word lines of the current sentence
+    lines: typing.List[typing.List[str]] = []
     testlevel = 1
     testclass = "Format"
     for line_counter, line in enumerate(inp):
@@ -663,9 +670,7 @@ def validate_cols(cols, tag_sets, args):
         # (more, what?)
     if args.level > 3:
         # level 4 (it is language-specific; to disallow everywhere, use --lang ud)
-        validate_whitespace(
-            cols, tag_sets
-        )  
+        validate_whitespace(cols, tag_sets)
 
 
 def validate_token_empty_vals(cols):
@@ -3380,11 +3385,13 @@ if __name__ == "__main__":
         # In addition, there might be relations that are only allowed in DEPS.
         # One of them, "ref", is universal and we currently mention it directly
         # in the code, although there is also a file "edeprel.ud".
-        loaded_deps = load_set("deprel.ud", "edeprel." + args.lang, validate_enhanced=True)
+        loaded_deps = load_set(
+            "deprel.ud", "edeprel." + args.lang, validate_enhanced=True
+        )
         tagsets[DEPS] = set().union(
             tagsets[DEPREL] if tagsets[DEPREL] is not None else set(),
             {"ref"},
-            loaded_deps if loaded_deps is not None else set()
+            loaded_deps if loaded_deps is not None else set(),
         )
         tagsets[FEATS] = load_set("feat_val.ud", "feat_val." + args.lang)
         tagsets[UPOS] = load_set("cpos.ud", None)

@@ -236,10 +236,7 @@ def trees(
             cols = line.split("\t")
             if len(cols) != COLCOUNT:
                 testid = "number-of-columns"
-                testmessage = "The line has %d columns but %d are expected." % (
-                    len(cols),
-                    COLCOUNT,
-                )
+                testmessage = f"The line has {len(cols)} columns but {COLCOUNT} are expected."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             lines.append(cols)
             validate_cols_level1(cols)
@@ -248,8 +245,7 @@ def trees(
         else:  # A line which is neither a comment nor a token/word, nor empty. That's bad!
             testid = "invalid-line"
             testmessage = (
-                "Spurious line: '%s'. All non-empty lines should start with a digit or the # character."
-                % (line)
+                f"Spurious line: {line!r} All non-empty lines should start with a digit or the # character."
             )
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     else:  # end of file
@@ -292,8 +288,7 @@ def validate_unicode_normalization(text):
         testclass = "Unicode"
         testid = "unicode-normalization"
         testmessage = (
-            "Unicode not normalized: %s.character[%d] is %s, should be %s."
-            % (COLNAMES[firsti], firstj, inpfirst, nfcfirst)
+            f"Unicode not normalized: {COLNAMES[firsti]!r}.character[{firstj}] is {inpfirst!r}, should be {nfcfirst}."
         )
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
@@ -316,28 +311,23 @@ def validate_cols_level1(cols):
         # Must never be empty
         if not cols[col_idx]:
             testid = "empty-column"
-            testmessage = "Empty value in column %s." % (COLNAMES[col_idx])
+            testmessage = f"Empty value in column {COLNAMES[col_idx]}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         else:
             # Must never have leading/trailing whitespace
             if cols[col_idx][0].isspace():
                 testid = "leading-whitespace"
-                testmessage = "Leading whitespace not allowed in column %s." % (
-                    COLNAMES[col_idx]
-                )
+                testmessage = f"Leading whitespace not allowed in column {COLNAMES[col_idx]}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             if cols[col_idx][-1].isspace():
                 testid = "trailing-whitespace"
-                testmessage = "Trailing whitespace not allowed in column %s." % (
-                    COLNAMES[col_idx]
-                )
+                testmessage = f"Trailing whitespace not allowed in column {COLNAMES[col_idx]}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             # Must never contain two consecutive whitespace characters
             if whitespace2_re.match(cols[col_idx]):
                 testid = "repeated-whitespace"
                 testmessage = (
-                    "Two or more consecutive whitespace characters not allowed in column %s."
-                    % (COLNAMES[col_idx])
+                    f"Two or more consecutive whitespace characters not allowed in column {COLNAMES[col_idx]}."
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     # These columns must not have whitespace
@@ -346,15 +336,12 @@ def validate_cols_level1(cols):
             break  # this has been already reported in trees()
         if whitespace_re.match(cols[col_idx]):
             testid = "invalid-whitespace"
-            testmessage = "White space not allowed in column %s: '%s'." % (
-                COLNAMES[col_idx],
-                cols[col_idx],
-            )
+            testmessage = f"White space not allowed in column {COLNAMES[col_idx]} {cols[col_idx]!r}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     # Check for the format of the ID value. (ID must not be empty.)
     if not (is_word(cols) or is_empty_node(cols) or is_multiword_token(cols)):
         testid = "invalid-word-id"
-        testmessage = "Unexpected ID format '%s'." % cols[ID]
+        testmessage = f"Unexpected ID format {cols[ID]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -389,7 +376,7 @@ def validate_ID_sequence(tree):
             # This should not happen. The function is_multiword_token() would then not return True.
             if not match:
                 testid = "invalid-word-interval"
-                testmessage = "Spurious word interval definition: '%s'." % cols[ID]
+                testmessage = f"Spurious word interval definition: {cols[ID]!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                 continue
             beg, end = int(match.group(1)), int(match.group(2))
@@ -428,12 +415,12 @@ def validate_ID_sequence(tree):
     for (b, e) in tokens:
         if e < b:  # end before beginning
             testid = "reversed-word-interval"
-            testmessage = "Spurious token interval %d-%d" % (b, e)
+            testmessage = f"Spurious token interval {b:d}-{e:d}"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
         if b < 1 or e > len(words):  # out of range
             testid = "word-interval-out"
-            testmessage = "Spurious token interval %d-%d (out of range)" % (b, e)
+            testmessage = f"Spurious token interval {b:d}-{e:d} (out of range)"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
 
@@ -453,7 +440,7 @@ def validate_token_ranges(tree):
             not m
         ):  # This should not happen. The function is_multiword_token() would then not return True.
             testid = "invalid-word-interval"
-            testmessage = "Spurious word interval definition: '%s'." % cols[ID]
+            testmessage = f"Spurious word interval definition: {cols[ID]!r}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
         start, end = m.groups()
@@ -462,12 +449,12 @@ def validate_token_ranges(tree):
         # there?
         if not start < end:
             testid = "reversed-word-interval"
-            testmessage = "Spurious token interval %d-%d" % (start, end)
+            testmessage = f"Spurious token interval {start:d}-{end:d}"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
         if covered & set(range(start, end + 1)):
             testid = "overlapping-word-intervals"
-            testmessage = "Range overlaps with others: %s" % cols[ID]
+            testmessage = f"Range overlaps with others: {cols[ID]}"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         covered |= set(range(start, end + 1))
 
@@ -521,7 +508,7 @@ def validate_sent_id(comments, known_ids, lcode):
         sid = matched[0].group(1)
         if sid in known_ids:
             testid = "non-unique-sent-id"
-            testmessage = "Non-unique sent_id attribute '%s'." % sid
+            testmessage = f"Non-unique sent_id attribute {sid!r}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         if sid.count("/") > 1 or (
             sid.count("/") == 1 and lcode != "ud" and lcode != "shopen"
@@ -749,7 +736,7 @@ def validate_character_constraints(cols):
     ):
         testclass = "Morpho"
         testid = "invalid-upos"
-        testmessage = "Invalid UPOS value '%s'." % cols[UPOS]
+        testmessage = f"Invalid UPOS value {cols[UPOS]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if not (
         re.match(r"^[a-z]+(:[a-z]+)?$", cols[DEPREL])
@@ -757,20 +744,20 @@ def validate_character_constraints(cols):
     ):
         testclass = "Syntax"
         testid = "invalid-deprel"
-        testmessage = "Invalid DEPREL value '%s'." % cols[DEPREL]
+        testmessage = f"Invalid DEPREL value {cols[DEPREL]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     try:
         deps_list(cols)
     except ValueError:
         testclass = "Enhanced"
         testid = "invalid-deps"
-        testmessage = "Failed to parse DEPS: '%s'." % cols[DEPS]
+        testmessage = f"Failed to parse DEPS: {cols[DEPS]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         return
     if any(deprel for head, deprel in deps_list(cols) if not edeprel_re.match(deprel)):
         testclass = "Enhanced"
         testid = "invalid-edeprel"
-        testmessage = "Invalid enhanced relation type: '%s'." % cols[DEPS]
+        testmessage = f"Invalid enhanced relation type: {cols[DEPS]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -798,7 +785,7 @@ def validate_features(cols, tag_sets, args):
     if [f.lower() for f in feat_list] != sorted(f.lower() for f in feat_list):
         testlevel = 2
         testid = "unsorted-features"
-        testmessage = "Morphological features must be sorted: '%s'." % feats
+        testmessage = f"Morphological features must be sorted: {feats!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     attr_set = (
         set()
@@ -824,13 +811,13 @@ def validate_features(cols, tag_sets, args):
             if len(values) != len(set(values)):
                 testlevel = 2
                 testid = "repeated-feature-value"
-                testmessage = "Repeated feature values are disallowed: '%s'" % feats
+                testmessage = f"Repeated feature values are disallowed: {feats!r}"
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             if [v.lower() for v in values] != sorted(v.lower() for v in values):
                 testlevel = 2
                 testid = "unsorted-feature-values"
                 testmessage = (
-                    "If a feature has multiple values, these must be sorted: '%s'" % f
+                    f"If a feature has multiple values, these must be sorted: {f!r}"
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             for v in values:
@@ -853,12 +840,12 @@ def validate_features(cols, tag_sets, args):
                     warn_on_missing_files.add("feat_val")
                     testlevel = 4
                     testid = "unknown-feature-value"
-                    testmessage = "Unknown feature-value pair '%s=%s'." % (attr, v)
+                    testmessage = f"Unknown feature-value pair {attr}={v!r}."
                     warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if len(attr_set) != len(feat_list):
         testlevel = 2
         testid = "repeated-feature"
-        testmessage = "Repeated features are disallowed: '%s'." % feats
+        testmessage = f"Repeated features are disallowed: {feats!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -871,7 +858,7 @@ def validate_upos(cols, tag_sets):
         testlevel = 2
         testclass = "Morpho"
         testid = "unknown-upos"
-        testmessage = "Unknown UPOS tag: '%s'." % cols[UPOS]
+        testmessage = f"Unknown UPOS tag: {cols[UPOS]!r}."
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
@@ -888,7 +875,7 @@ def validate_deprels(cols, tag_sets, args):
         warn_on_missing_files.add("deprel")
         testclass = "Syntax"
         testid = "unknown-deprel"
-        testmessage = "Unknown DEPREL label: '%s'" % cols[DEPREL]
+        testmessage = f"Unknown DEPREL label: {cols[DEPREL]!r}"
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if DEPS >= len(cols):
         return  # this has been already reported in trees()
@@ -901,7 +888,7 @@ def validate_deprels(cols, tag_sets, args):
                 testid = (
                     "invalid-head-deprel"
                 )  # but it would have probably triggered another error above
-                testmessage = "Malformed head:deprel pair '%s'." % head_deprel
+                testmessage = f"Malformed head:deprel pair {head_deprel!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                 continue
             if args.level < 4:
@@ -935,7 +922,7 @@ def deps_list(cols):
     else:
         deps = [hd.split(":", 1) for hd in cols[DEPS].split("|")]
     if any(hd for hd in deps if len(hd) != 2):
-        raise ValueError("malformed DEPS: %s" % cols[DEPS])
+        raise ValueError(f"malformed DEPS: {cols[DEPS]}")
     return deps
 
 
@@ -960,12 +947,12 @@ def validate_ID_references(tree):
             if match is None:
                 testclass = "Format"
                 testid = "invalid-head"
-                testmessage = "Invalid HEAD: '%s'." % cols[HEAD]
+                testmessage = f"Invalid HEAD: {cols[HEAD]!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             if not (cols[HEAD] in ids or cols[HEAD] == "0"):
                 testclass = "Syntax"
                 testid = "unknown-head"
-                testmessage = "Undefined HEAD (no such ID): '%s'." % cols[HEAD]
+                testmessage = f"Undefined HEAD (no such ID): {cols[HEAD]!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         if DEPS >= len(cols):
             return  # this has been already reported in trees()
@@ -975,7 +962,7 @@ def validate_ID_references(tree):
             # Similar errors have probably been reported earlier.
             testclass = "Format"
             testid = "invalid-deps"
-            testmessage = "Failed to parse DEPS: '%s'." % cols[DEPS]
+            testmessage = f"Failed to parse DEPS: {cols[DEPS]!r}."
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             continue
         for head, deprel in deps:
@@ -983,13 +970,13 @@ def validate_ID_references(tree):
             if match is None:
                 testclass = "Format"
                 testid = "invalid-ehead"
-                testmessage = "Invalid enhanced head reference: '%s'." % head
+                testmessage = f"Invalid enhanced head reference: {head!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
             if not (head in ids or head == "0"):
                 testclass = "Enhanced"
                 testid = "unknown-ehead"
                 testmessage = (
-                    "Undefined enhanced head reference (no such ID): '%s'." % head
+                    f"Undefined enhanced head reference (no such ID): {head!r}."
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
@@ -1022,7 +1009,7 @@ def validate_root(tree):
                 # Similar errors have probably been reported earlier.
                 testclass = "Format"
                 testid = "invalid-deps"
-                testmessage = "Failed to parse DEPS: '%s'." % cols[DEPS]
+                testmessage = f"Failed to parse DEPS: {cols[DEPS]!r}."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
                 continue
             for head, deprel in deps:
@@ -1060,7 +1047,7 @@ def validate_deps(tree):
             # Similar errors have probably been reported earlier.
             testclass = "Format"
             testid = "invalid-deps"
-            testmessage = "Failed to parse DEPS: '%s'." % cols[DEPS]
+            testmessage = f"Failed to parse DEPS: {cols[DEPS]!r}."
             warn(
                 testmessage,
                 testclass,
@@ -1072,7 +1059,7 @@ def validate_deps(tree):
         if heads != sorted(heads):
             testclass = "Format"
             testid = "unsorted-deps"
-            testmessage = "DEPS not sorted by head index: '%s'" % cols[DEPS]
+            testmessage = f"DEPS not sorted by head index: {cols[DEPS]!r}"
             warn(
                 testmessage,
                 testclass,
@@ -1131,7 +1118,7 @@ def validate_deps(tree):
         if id_ in heads:
             testclass = "Enhanced"
             testid = "deps-self-loop"
-            testmessage = "Self-loop in DEPS for '%s'" % cols[ID]
+            testmessage = f"Self-loop in DEPS for {cols[ID]!r}"
             warn(
                 testmessage,
                 testclass,
@@ -1170,7 +1157,7 @@ def validate_misc(tree):
         for a in list(mamap):
             if mamap[a] > 1:
                 testid = "repeated-misc"
-                testmessage = "MISC attribute '%s' not supposed to occur twice" % a
+                testmessage = f"MISC attribute {a!r} not supposed to occur twice"
                 warn(
                     testmessage,
                     testclass,
@@ -1231,7 +1218,7 @@ def build_tree(sentence):
             return None
         if head == id_:
             testid = "head-self-loop"
-            testmessage = "HEAD == ID for %s" % cols[ID]
+            testmessage = f"HEAD == ID for {cols[ID]}"
             warn(
                 testmessage,
                 testclass,
@@ -1249,7 +1236,7 @@ def build_tree(sentence):
     # Check that there is just one node with the root relation.
     if len(tree["children"][0]) > 1 and args.single_root:
         testid = "multiple-roots"
-        testmessage = "Multiple root words: %s" % tree["children"][0]
+        testmessage = f"Multiple root words: {tree['children'][0]}"
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
         return None
     # Return None if there are any cycles. Avoid surprises when working with the graph.
@@ -1406,7 +1393,7 @@ def validate_upos_vs_deprel(id, tree):
         and "fixed" not in childrels
     ):
         testid = "rel-upos-det"
-        testmessage = "'det' should be 'DET' or 'PRON' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'det' should be 'DET' or 'PRON' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1421,7 +1408,7 @@ def validate_upos_vs_deprel(id, tree):
     # we concluded that the validator will tolerate them.
     if deprel == "nummod" and not re.match(r"^(NUM|NOUN|SYM)$", cols[UPOS]):
         testid = "rel-upos-nummod"
-        testmessage = "'nummod' should be 'NUM' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'nummod' should be 'NUM' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1442,7 +1429,7 @@ def validate_upos_vs_deprel(id, tree):
         and "goeswith" not in childrels
     ):
         testid = "rel-upos-advmod"
-        testmessage = "'advmod' should be 'ADV' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'advmod' should be 'ADV' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1454,7 +1441,7 @@ def validate_upos_vs_deprel(id, tree):
     # Known expletives are pronouns. Determiners and particles are probably acceptable, too.
     if deprel == "expl" and not re.match(r"^(PRON|DET|PART)$", cols[UPOS]):
         testid = "rel-upos-expl"
-        testmessage = "'expl' should normally be 'PRON' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'expl' should normally be 'PRON' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1466,7 +1453,7 @@ def validate_upos_vs_deprel(id, tree):
     # Auxiliary verb/particle must be AUX.
     if deprel == "aux" and not re.match(r"^(AUX)", cols[UPOS]):
         testid = "rel-upos-aux"
-        testmessage = "'aux' should be 'AUX' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'aux' should be 'AUX' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1478,9 +1465,7 @@ def validate_upos_vs_deprel(id, tree):
     # Copula is an auxiliary verb/particle (AUX) or a pronoun (PRON|DET).
     if deprel == "cop" and not re.match(r"^(AUX|PRON|DET|SYM)", cols[UPOS]):
         testid = "rel-upos-cop"
-        testmessage = "'cop' should be 'AUX' or 'PRON'/'DET' but it is '%s'" % (
-            cols[UPOS]
-        )
+        testmessage = f"'cop' should be 'AUX' or 'PRON'/'DET' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1514,7 +1499,7 @@ def validate_upos_vs_deprel(id, tree):
         and "fixed" not in childrels
     ):
         testid = "rel-upos-case"
-        testmessage = "'case' should not be '%s'" % (cols[UPOS])
+        testmessage = f"'case' should not be {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1530,7 +1515,7 @@ def validate_upos_vs_deprel(id, tree):
         and "fixed" not in childrels
     ):
         testid = "rel-upos-mark"
-        testmessage = "'mark' should not be '%s'" % (cols[UPOS])
+        testmessage = f"'mark' should not be {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1546,7 +1531,7 @@ def validate_upos_vs_deprel(id, tree):
         and "fixed" not in childrels
     ):
         testid = "rel-upos-cc"
-        testmessage = "'cc' should not be '%s'" % (cols[UPOS])
+        testmessage = f"'cc' should not be {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1557,7 +1542,7 @@ def validate_upos_vs_deprel(id, tree):
         )
     if cols[DEPREL] == "punct" and cols[UPOS] != "PUNCT":
         testid = "rel-upos-punct"
-        testmessage = "'punct' must be 'PUNCT' but it is '%s'" % (cols[UPOS])
+        testmessage = f"'punct' must be 'PUNCT' but it is {cols[UPOS]!r}"
         warn(
             testmessage,
             testclass,
@@ -1568,7 +1553,7 @@ def validate_upos_vs_deprel(id, tree):
         )
     if cols[UPOS] == "PUNCT" and not re.match(r"^(punct|root)", deprel):
         testid = "upos-rel-punct"
-        testmessage = "'PUNCT' must be 'punct' but it is '%s'" % (cols[DEPREL])
+        testmessage = f"'PUNCT' must be 'punct' but it is {cols[DEPREL]!r}"
         warn(
             testmessage,
             testclass,
@@ -1601,7 +1586,7 @@ def validate_left_to_right_relations(id, tree):
             # For conj, flat, and fixed the requirement was introduced already before UD 2.2, and all treebanks in UD 2.3 passed it.
             # For appos and goeswith the requirement was introduced before UD 2.4 and legacy treebanks are allowed to fail it.
             testid = "right-to-left-%s" % lspec2ud(cols[DEPREL])
-            testmessage = "Relation '%s' must go left-to-right." % cols[DEPREL]
+            testmessage = f"Relation {cols[DEPREL]!r} must go left-to-right."
             warn(
                 testmessage,
                 testclass,
@@ -2098,7 +2083,7 @@ def validate_projective_punctuation(id, tree):
         if nonprojnodes:
             testid = "punct-causes-nonproj"
             testmessage = (
-                "Punctuation must not cause non-projectivity of nodes %s" % nonprojnodes
+                f"Punctuation must not cause non-projectivity of nodes {nonprojnodes}"
             )
             warn(
                 testmessage,
@@ -3045,7 +3030,7 @@ def validate_copula_lemmas(cols, children, nodes, line, lang):
             testlevel = 5
             testclass = "Syntax"
             testid = "cop-lemma"
-            testmessage = "'%s' is not a copula in language [%s]" % (cols[LEMMA], lang)
+            testmessage = f"{cols[LEMMA]!r} is not a copula in language [{lang}]"
             warn(
                 testmessage,
                 testclass,
@@ -3434,7 +3419,7 @@ if __name__ == "__main__":
     else:
         if not args.quiet:
             for k, v in sorted(error_counter.items()):
-                print("%s errors: %d" % (k, v), file=sys.stderr)
+                print(f"{k} errors: {v:d}", file=sys.stderr)
             print(
                 "*** FAILED *** with %d errors"
                 % sum(v for k, v in iter(error_counter.items())),
@@ -3444,7 +3429,7 @@ if __name__ == "__main__":
             filepath = os.path.join(THISDIR, "data", f_name + "." + args.lang)
             if not os.path.exists(filepath):
                 print(
-                    "The language-specific file %s does not exist." % filepath,
+                    f"The language-specific file {filepath} does not exist.",
                     file=sys.stderr,
                 )
         sys.exit(1)

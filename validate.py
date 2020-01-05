@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
 
 # TODO: replace huge string matching by set membership testing
+# TODO: refactor the test message blocks into warning classes
+# TODO: make a more extensible interface  (have a look at https://github.com/PyCQA/pycodestyle/blob/master/pycodestyle.py)
 
 # Original code (2015) by Filip Ginter and Sampo Pyysalo.
 # DZ 2018-11-04: Porting the validator to Python 3.
@@ -154,7 +156,7 @@ def lspec2ud(deprel):
 # Level 1 tests. Only CoNLL-U backbone. Values can be empty or non-UD.
 # ==============================================================================
 
-sentid_re = re.compile("^# sent_id\s*=\s*(\S+)$")
+sentid_re = re.compile(r"^# sent_id\s*=\s*(\S+)$")
 
 
 def trees(inp, tag_sets, args):
@@ -274,8 +276,8 @@ def validate_unicode_normalization(text):
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-whitespace_re = re.compile(".*\s", re.U)
-whitespace2_re = re.compile(".*\s\s", re.U)
+whitespace_re = re.compile(r".*\s", re.U)
+whitespace2_re = re.compile(r".*\s\s", re.U)
 
 
 def validate_cols_level1(cols):
@@ -336,7 +338,7 @@ def validate_cols_level1(cols):
 
 ##### Tests applicable to the whole tree
 
-interval_re = re.compile("^([0-9]+)-([0-9]+)$", re.U)
+interval_re = re.compile(r"^([0-9]+)-([0-9]+)$", re.U)
 
 
 def validate_ID_sequence(tree):
@@ -400,7 +402,8 @@ def validate_ID_sequence(tree):
         )
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
     # Check elementary sanity of word intervals.
-    # Remember that these are not just multi-word tokens. Here we have intervals even for single-word tokens (b=e)!
+    # Remember that these are not just multi-word tokens. Here we have intervals even for
+    # single-word tokens (b=e)!
     for (b, e) in tokens:
         if e < b:  # end before beginning
             testid = "reversed-word-interval"
@@ -511,7 +514,7 @@ def validate_sent_id(comments, known_ids, lcode):
         known_ids.add(sid)
 
 
-text_re = re.compile("^# text\s*=\s*(.+)$")
+text_re = re.compile(r"^# text\s*=\s*(.+)$")
 
 
 def validate_text_meta(comments, tree):
@@ -693,13 +696,13 @@ def validate_empty_node_empty_vals(cols):
 # Lo ... other Unicode letters (all caseless scripts, e.g., Arabic)
 # M .... combining diacritical marks
 # Underscore is allowed between letters but not at beginning, end, or next to another underscore.
-edeprelpart_resrc = "[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(_[\p{Ll}\p{Lm}\p{Lo}\p{M}]+)*"
+edeprelpart_resrc = r"[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(_[\p{Ll}\p{Lm}\p{Lo}\p{M}]+)*"
 # There must be always the universal part, consisting only of ASCII letters.
 # There can be up to three additional, colon-separated parts: subtype, preposition and case.
 # One of them, the preposition, may contain Unicode letters. We do not know which one it is
 # (only if there are all four parts, we know it is the third one).
 # ^[a-z]+(:[a-z]+)?(:[\p{Ll}\p{Lm}\p{Lo}\p{M}]+(_[\p{Ll}\p{Lm}\p{Lo}\p{M}]+)*)?(:[a-z]+)?$
-edeprel_resrc = "^[a-z]+(:[a-z]+)?(:" + edeprelpart_resrc + ")?(:[a-z]+)?$"
+edeprel_resrc = r"^[a-z]+(:[a-z]+)?(:" + edeprelpart_resrc + ")?(:[a-z]+)?$"
 edeprel_re = re.compile(edeprel_resrc, re.U)
 
 
@@ -744,10 +747,10 @@ def validate_character_constraints(cols):
 
 
 attr_val_re = re.compile(
-    "^([A-Z0-9][A-Z0-9a-z]*(?:\[[a-z0-9]+\])?)=(([A-Z0-9][A-Z0-9a-z]*)(,([A-Z0-9][A-Z0-9a-z]*))*)$",
+    r"^([A-Z0-9][A-Z0-9a-z]*(?:\[[a-z0-9]+\])?)=(([A-Z0-9][A-Z0-9a-z]*)(,([A-Z0-9][A-Z0-9a-z]*))*)$",
     re.U,
 )
-val_re = re.compile("^[A-Z0-9][A-Z0-9a-z]*", re.U)
+val_re = re.compile(r"^[A-Z0-9][A-Z0-9a-z]*", re.U)
 
 
 def validate_features(cols, tag_sets, args):
@@ -908,8 +911,8 @@ def deps_list(cols):
     return deps
 
 
-basic_head_re = re.compile("^(0|[1-9][0-9]*)$", re.U)
-enhanced_head_re = re.compile("^(0|[1-9][0-9]*)(\.[1-9][0-9]*)?$", re.U)
+basic_head_re = re.compile(r"^(0|[1-9][0-9]*)$", re.U)
+enhanced_head_re = re.compile(r"^(0|[1-9][0-9]*)(\.[1-9][0-9]*)?$", re.U)
 
 
 def validate_ID_references(tree):
@@ -3357,7 +3360,7 @@ if __name__ == "__main__":
             "tokens_w_space.ud", "tokens_w_space." + args.lang
         )
         tagsets[TOKENSWSPACE] = [
-            re.compile(regex, re.U) for regex in tagsets[TOKENSWSPACE]
+            re.compile(r, re.U) for r in tagsets[TOKENSWSPACE]
         ]  # ...turn into compiled regular expressions
 
     out = sys.stdout  # hard-coding - does this ever need to be anything else?

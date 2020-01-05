@@ -22,7 +22,7 @@ THISDIR = os.path.dirname(
 # Constants for the column indices
 COLCOUNT = 10
 ID, FORM, LEMMA, UPOS, XPOS, FEATS, HEAD, DEPREL, DEPS, MISC = range(COLCOUNT)
-COLNAMES = "ID,FORM,LEMMA,UPOS,XPOS,FEATS,HEAD,DEPREL,DEPS,MISC".split(",")
+COLNAMES = ("ID", "FORM", "LEMMA", "UPOS", "XPOS", "FEATS", "HEAD", "DEPREL", "DEPS", "MISC")
 TOKENSWSPACE = MISC + 1  # one extra constant
 
 # Global variables:
@@ -33,9 +33,9 @@ line_of_first_empty_node = None
 line_of_first_enhanced_orphan = None
 
 error_counter = {}  # key: error type value: error count
-warn_on_missing_files = (
-    set()
-)  # langspec files which you should warn about in case they are missing (can be deprel, edeprel, feat_val, tokens_w_space)
+ # langspec files which you should warn about in case they are missing (can be deprel, edeprel,
+ # feat_val, tokens_w_space)
+warn_on_missing_files = set()
 
 
 def warn(

@@ -83,7 +83,7 @@ def warn(
     if not args.quiet:
         if args.max_err > 0 and error_counter[error_type] == args.max_err:
             print(
-                ("...suppressing further errors regarding " + error_type),
+                (f"...suppressing further errors regarding {error_type}"),
                 file=sys.stderr,
             )
         elif args.max_err > 0 and error_counter[error_type] > args.max_err:
@@ -93,7 +93,7 @@ def warn(
                 if curr_fname == "-":
                     fn = "(in STDIN) "
                 else:
-                    fn = "(in " + os.path.basename(curr_fname) + ") "
+                    fn = f"(in {os.path.basename(curr_fname)}) "
             else:
                 fn = ""
             sent = ""
@@ -102,9 +102,9 @@ def warn(
             # Originally we used a parameter sid but we probably do not need to override the global
             # value.
             if sentence_id:
-                sent = " Sent " + sentence_id
+                sent = f" Sent {sentence_id}"
             if nodeid:
-                node = " Node " + str(nodeid)
+                node = f" Node {nodeid}"
             if nodelineno:
                 print(
                     "[%sLine %d%s%s]: [L%d %s %s] %s"
@@ -162,7 +162,7 @@ def parse_empty_node_id(cols: typing.Sequence[str]):
 
 
 def shorten(s: str):
-    return s if len(s) < 25 else s[:20] + "[...]"
+    return s if len(s) < 25 else f"{s[:20]}[...]"
 
 
 def lspec2ud(deprel: str):
@@ -835,7 +835,7 @@ def validate_features(cols, tag_sets, args):
                 if (
                     args.level > 3
                     and tag_sets[FEATS] is not None
-                    and attr + "=" + v not in tag_sets[FEATS]
+                    and f"{attr}={v}" not in tag_sets[FEATS]
                 ):
                     warn_on_missing_files.add("feat_val")
                     testlevel = 4

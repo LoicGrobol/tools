@@ -388,7 +388,7 @@ def validate_ID_sequence(tree):
     if wrdstrseq != expstrseq:
         testid = "word-id-sequence"
         testmessage = (
-            f"Words do not form a sequence. Got '{wrdstrseq}'. Expected '{expstrseq}'."
+            f"Words do not form a sequence. Got {wrdstrseq!r}. Expected {expstrseq!r}."
         )
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
     # Check elementary sanity of word intervals.
@@ -471,7 +471,7 @@ def validate_sent_id(comments, known_ids, lcode):
         else:
             if c.startswith("# sent_id") or c.startswith("#sent_id"):
                 testid = "invalid-sent-id"
-                testmessage = f"Spurious sent_id line: '{c}' Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
+                testmessage = f"Spurious sent_id line: {c!r} Should look like '# sent_id = xxxxx' where xxxxx is not whitespace. Forward slash reserved for special purposes."
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
     if not matched:
         testid = "missing-sent-id"
@@ -493,7 +493,7 @@ def validate_sent_id(comments, known_ids, lcode):
             sid.count("/") == 1 and lcode != "ud" and lcode != "shopen"
         ):
             testid = "slash-in-sent-id"
-            testmessage = f"The forward slash is reserved for special use in parallel treebanks: '{sid}'"
+            testmessage = f"The forward slash is reserved for special use in parallel treebanks: {sid!r}"
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
         known_ids.add(sid)
 
@@ -1044,7 +1044,7 @@ def validate_deps(tree):
                     if d < lastd:
                         testclass = "Format"
                         testid = "unsorted-deps-2"
-                        testmessage = f"DEPS pointing to head '{h}' not sorted by relation type: '{cols[DEPS]}'"
+                        testmessage = f"DEPS pointing to head {h!r} not sorted by relation type: {cols[DEPS]!r}"
                         warn(
                             testmessage,
                             testclass,
@@ -1719,7 +1719,7 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-aux-cop"
                 testmessage = (
-                    f"'{pdeprel}' not expected to have children"
+                    f"{pdeprel!r} not expected to have children"
                     f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
                     f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
@@ -1735,7 +1735,7 @@ def validate_functional_leaves(id, tree):
                 r"^(goeswith|fixed|reparandum|conj|punct)$", cdeprel
             ):
                 testid = "leaf-cc"
-                testmessage = f"'{pdeprel}' not expected to have children ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel} --> {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
+                testmessage = f"{pdeprel!r} not expected to have children ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel} --> {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 warn(
                     testmessage,
                     testclass,
@@ -1757,7 +1757,7 @@ def validate_functional_leaves(id, tree):
             ):
                 testid = "leaf-fixed"
                 testmessage = (
-                    f"'{pdeprel}' not expected to have children"
+                    f"{pdeprel!r} not expected to have children"
                     f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
                     f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
@@ -1773,7 +1773,7 @@ def validate_functional_leaves(id, tree):
             elif pdeprel == "goeswith":
                 testid = "leaf-goeswith"
                 testmessage = (
-                    f"'{pdeprel}' not expected to have children"
+                    f"{pdeprel!r} not expected to have children"
                     f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
                     f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
@@ -1790,7 +1790,7 @@ def validate_functional_leaves(id, tree):
             elif pdeprel == "punct" and cdeprel != "punct":
                 testid = "leaf-punct"
                 testmessage = (
-                    f"'{pdeprel}' not expected to have children"
+                    f"{pdeprel!r} not expected to have children"
                     f" ({idparent}:{tree['nodes'][idparent][FORM]}:{pdeprel}"
                     f" → {idchild}:{tree['nodes'][idchild][FORM]}:{cdeprel})"
                 )
@@ -2115,7 +2115,7 @@ def validate_whitespace(cols, tag_sets):
                 warn_on_missing_files.add("tokens_w_space")
                 testid = "invalid-word-with-space"
                 testmessage = (
-                    f"'{cols[col_idx]}' in column {COLNAMES[col_idx]} is not on the list of"
+                    f"{cols[col_idx]!r} in column {COLNAMES[col_idx]} is not on the list of"
                     " exceptions allowed to contain whitespace (data/tokens_w_space.LANG files)."
                 )
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
@@ -2746,7 +2746,7 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
             testclass = "Morpho"
             testid = "aux-lemma"
             testmessage = (
-                f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
+                f"{cols[LEMMA]!r} is not an auxiliary verb in language [{lang}]"
                 " (there are no known approved auxiliaries in this language)"
             )
             warn(
@@ -2762,7 +2762,7 @@ def validate_auxiliary_verbs(cols, children, nodes, line, lang):
             testclass = "Morpho"
             testid = "aux-lemma"
             testmessage = (
-                f"'{cols[LEMMA]}' is not an auxiliary verb in language [{lang}]"
+                f"{cols[LEMMA]!r} is not an auxiliary verb in language [{lang}]"
             )
             warn(
                 testmessage,
@@ -2917,7 +2917,7 @@ def validate_copula_lemmas(cols, children, nodes, line, lang):
             testclass = "Syntax"
             testid = "cop-lemma"
             testmessage = (
-                f"'{cols[LEMMA]}' is not a copula in language [{lang}]"
+                f"{cols[LEMMA]!r} is not a copula in language [{lang}]"
                 " (there are no known approved copulas in this language)"
             )
             warn(
@@ -3089,7 +3089,7 @@ def load_set(
                         testlevel = 4
                         testclass = "Enhanced"
                         testid = "malformed-relation"
-                        testmessage = f"Spurious language-specific enhanced relation '{v}' - it does not match the regular expression that restricts enhanced relations."
+                        testmessage = f"Spurious language-specific enhanced relation {v!r} - it does not match the regular expression that restricts enhanced relations."
                         warn(
                             testmessage,
                             testclass,
@@ -3107,7 +3107,7 @@ def load_set(
                         testlevel = 4
                         testclass = "Syntax"
                         testid = "malformed-relation"
-                        testmessage = f"Spurious language-specific relation '{v}' - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
+                        testmessage = f"Spurious language-specific relation {v!r} - in basic UD, it must match '^[a-z]+(:[a-z]+)?'."
                         warn(
                             testmessage,
                             testclass,
@@ -3122,7 +3122,7 @@ def load_set(
                         if parts[0] not in res and parts[0] != "ref":
                             testlevel = 4
                             testclass = "Syntax"
-                            testmessage = f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
+                            testmessage = f"Spurious language-specific relation {v!r} - not an extension of any UD relation."
                             warn(
                                 testmessage,
                                 testclass,
@@ -3135,7 +3135,7 @@ def load_set(
                     except:
                         testlevel = 4
                         testclass = "Syntax"
-                        testmessage = f"Spurious language-specific relation '{v}' - not an extension of any UD relation."
+                        testmessage = f"Spurious language-specific relation {v!r} - not an extension of any UD relation."
                         warn(
                             testmessage,
                             testclass,

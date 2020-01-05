@@ -1,12 +1,10 @@
 #! /usr/bin/env python3
 # Original code (2015) by Filip Ginter and Sampo Pyysalo.
 # DZ 2018-11-04: Porting the validator to Python 3.
-import fileinput
 import sys
 import io
 import os.path
 import argparse
-import logging
 import traceback
 
 # According to https://stackoverflow.com/questions/1832893/python-regex-matching-unicode-properties,

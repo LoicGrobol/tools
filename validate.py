@@ -246,7 +246,7 @@ def trees(
 # ##### Tests applicable to a single row indpendently of the others
 
 
-def validate_unicode_normalization(text):
+def validate_unicode_normalization(text: str):
     """
     Tests that letters composed of multiple Unicode characters (such as a base
     letter plus combining diacritics) conform to NFC normalization (canonical
@@ -282,7 +282,7 @@ whitespace_re = re.compile(r".*\s", re.U)
 whitespace2_re = re.compile(r".*\s\s", re.U)
 
 
-def validate_cols_level1(cols):
+def validate_cols_level1(cols: typing.Sequence[str]):
     """
     Tests that can run on a single line and pertain only to the CoNLL-U file
     format, not to predefined sets of UD tags.
@@ -335,16 +335,17 @@ def validate_cols_level1(cols):
 # #### Tests applicable to the whole tree
 
 interval_re = re.compile(r"^([0-9]+)-([0-9]+)$", re.U)
+Tree = typing.Sequence[typing.Sequence[str]]
 
 
-def validate_ID_sequence(tree):
+def validate_ID_sequence(tree: Tree):
     """
     Validates that the ID sequence is correctly formed.
     """
     testlevel = 1
     testclass = "Format"
     words = []
-    tokens = []
+    tokens: typing.List[typing.Tuple[int, int]] = []
     current_word_id, next_empty_id = 0, 1
     for cols in tree:
         if not is_empty_node(cols):
@@ -407,13 +408,13 @@ def validate_ID_sequence(tree):
             continue
 
 
-def validate_token_ranges(tree):
+def validate_token_ranges(tree: Tree):
     """
     Checks that the word ranges for multiword tokens are valid.
     """
     testlevel = 1
     testclass = "Format"
-    covered = set()
+    covered: typing.Set[int] = set()
     for cols in tree:
         if not is_multiword_token(cols):
             continue
@@ -460,7 +461,7 @@ def validate_newlines(inp):
 # ##### Metadata tests # ########
 
 
-def validate_sent_id(comments, known_ids, lcode):
+def validate_sent_id(comments: typing.Iterable[str], known_ids, lcode):
     testlevel = 2
     testclass = "Metadata"
     matched = []

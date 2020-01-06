@@ -22,6 +22,7 @@ from collections import Counter
 # as in Perl.
 # import re
 import regex as re
+from typing_extensions import TypedDict
 
 THISDIR = os.path.dirname(
     os.path.realpath(os.path.abspath(__file__))
@@ -124,24 +125,26 @@ def warn(
 
 # ##### Support functions
 
+UDLine = typing.Sequence[str]
+
 
 def is_whitespace(line: str):
     return line and line.isspace()
 
 
-def is_word(cols: typing.Sequence[str]):
+def is_word(cols: UDLine):
     return re.match(r"^[1-9][0-9]*$", cols[ID])
 
 
-def is_multiword_token(cols: typing.Sequence[str]):
+def is_multiword_token(cols: UDLine):
     return re.match(r"^[1-9][0-9]*-[1-9][0-9]*$", cols[ID])
 
 
-def is_empty_node(cols: typing.Sequence[str]):
+def is_empty_node(cols: UDLine):
     return re.match(r"^[0-9]+\.[1-9][0-9]*$", cols[ID])
 
 
-def parse_empty_node_id(cols: typing.Sequence[str]):
+def parse_empty_node_id(cols: UDLine):
     m = re.match(r"^([0-9]+)\.([0-9]+)$", cols[ID])
     if not m:
         raise ValueError("parse_empty_node_id with non-empty node")
@@ -164,7 +167,9 @@ sentid_re = re.compile(r"^# sent_id\s*=\s*(\S+)$")
 
 
 def trees(
-    inp: typing.Iterable[str], tag_sets: typing.Dict[str, typing.Optional[Tagset]], args
+    inp: typing.Iterable[str],
+    tag_sets: typing.Dict[str, typing.Optional[Tagset]],
+    args: argparse.Namespace,
 ):
     """
     `inp` a file-like object yielding lines as unicode
@@ -282,7 +287,7 @@ whitespace_re = re.compile(r".*\s", re.U)
 whitespace2_re = re.compile(r".*\s\s", re.U)
 
 
-def validate_cols_level1(cols: typing.Sequence[str]):
+def validate_cols_level1(cols: UDLine):
     """
     Tests that can run on a single line and pertain only to the CoNLL-U file
     format, not to predefined sets of UD tags.
@@ -335,10 +340,10 @@ def validate_cols_level1(cols: typing.Sequence[str]):
 # #### Tests applicable to the whole tree
 
 interval_re = re.compile(r"^([0-9]+)-([0-9]+)$", re.U)
-Tree = typing.Sequence[typing.Sequence[str]]
+TreeBlock = typing.Sequence[UDLine]
 
 
-def validate_ID_sequence(tree: Tree):
+def validate_ID_sequence(tree: TreeBlock):
     """
     Validates that the ID sequence is correctly formed.
     """
@@ -408,7 +413,7 @@ def validate_ID_sequence(tree: Tree):
             continue
 
 
-def validate_token_ranges(tree: Tree):
+def validate_token_ranges(tree: TreeBlock):
     """
     Checks that the word ranges for multiword tokens are valid.
     """
@@ -442,7 +447,7 @@ def validate_token_ranges(tree: Tree):
         covered |= set(range(start, end + 1))
 
 
-def validate_newlines(inp):
+def validate_newlines(inp: typing.TextIO):
     if inp.newlines and inp.newlines != "\n":
         testlevel = 1
         testclass = "Format"
@@ -461,7 +466,9 @@ def validate_newlines(inp):
 # ##### Metadata tests # ########
 
 
-def validate_sent_id(comments: typing.Iterable[str], known_ids, lcode):
+def validate_sent_id(
+    comments: typing.Iterable[str], known_ids: typing.Set[str], lcode: str
+):
     testlevel = 2
     testclass = "Metadata"
     matched = []
@@ -502,7 +509,7 @@ def validate_sent_id(comments: typing.Iterable[str], known_ids, lcode):
 text_re = re.compile(r"^# text\s*=\s*(.+)$")
 
 
-def validate_text_meta(comments, tree):
+def validate_text_meta(comments: typing.Iterable[str], tree: TreeBlock):
     testlevel = 2
     testclass = "Metadata"
     matched = []
@@ -608,7 +615,7 @@ def validate_text_meta(comments, tree):
 # #### Tests applicable to a single row indpendently of the others
 
 
-def validate_cols(cols, tag_sets, args):
+def validate_cols(cols: UDLine, tag_sets, args):
     """
     All tests that can run on a single line. Done as soon as the line is read,
     called from trees() if level>1.
@@ -634,7 +641,7 @@ def validate_cols(cols, tag_sets, args):
         validate_whitespace(cols, tag_sets)
 
 
-def validate_token_empty_vals(cols):
+def validate_token_empty_vals(cols: UDLine):
     """
     Checks that a multi-word token has _ empty values in all fields except MISC.
     This is required by UD guidelines although it is not a problem in general,
@@ -644,9 +651,8 @@ def validate_token_empty_vals(cols):
         raise ValueError(
             f"Validating multiword empty values only makes sense for multiword tokens"
         )
-    for col_idx in range(
-        LEMMA, MISC
-    ):  # all columns except the first two (ID, FORM) and the last one (MISC)
+    # all columns except the first two (ID, FORM) and the last one (MISC)
+    for col_idx in range(LEMMA, MISC):
         if cols[col_idx] != "_":
             testlevel = 2
             testclass = "Format"
@@ -658,7 +664,7 @@ def validate_token_empty_vals(cols):
             warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-def validate_empty_node_empty_vals(cols):
+def validate_empty_node_empty_vals(cols: UDLine):
     """
     Checks that an empty node has _ empty values in HEAD and DEPREL. This is
     required by UD guidelines but not necessarily by CoNLL-U, therefore
@@ -692,7 +698,7 @@ edeprel_resrc = f"^[a-z]+(:[a-z]+)?(:{edeprelpart_resrc})?(:[a-z]+)?$"
 edeprel_re = re.compile(edeprel_resrc, re.U)
 
 
-def validate_character_constraints(cols):
+def validate_character_constraints(cols: UDLine):
     """
     Checks general constraints on valid characters, e.g. that UPOS
     only contains [A-Z].
@@ -732,6 +738,7 @@ def validate_character_constraints(cols):
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
+# FIXME: It might be better to replace this by a function dedicated to parse argval columns
 attr_val_re = re.compile(
     r"^([A-Z0-9][A-Z0-9a-z]*(?:\[[a-z0-9]+\])?)=(([A-Z0-9][A-Z0-9a-z]*)(,([A-Z0-9][A-Z0-9a-z]*))*)$",
     re.U,
@@ -739,7 +746,13 @@ attr_val_re = re.compile(
 val_re = re.compile(r"^[A-Z0-9][A-Z0-9a-z]*", re.U)
 
 
-def validate_features(cols, tag_sets, args):
+# FIXME: `args` is only used to get the level and should be replaced by only that
+# FIXME: Having a distinction between a `None` tagset and an empty tagset is not useful here
+def validate_features(
+    cols: UDLine,
+    tag_sets: typing.Dict[int, typing.Optional[Tagset]],
+    args: argparse.Namespace,
+):
     """
     Checks general constraints on feature-value format. On level 4 and higher,
     also checks that a feature-value pair is listed as approved. (Every pair
@@ -820,7 +833,8 @@ def validate_features(cols, tag_sets, args):
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-def validate_upos(cols, tag_sets):
+# FIXME: Having a distinction between a `None` tagset and an empty tagset is not useful here
+def validate_upos(cols: UDLine, tag_sets: typing.Dict[int, typing.Optional[Tagset]]):
     if UPOS >= len(cols):
         return  # this has been already reported in trees()
     if is_empty_node(cols) and cols[UPOS] == "_":
@@ -833,7 +847,13 @@ def validate_upos(cols, tag_sets):
         warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-def validate_deprels(cols, tag_sets, args):
+# FIXME: `args` is only used to get the level and should be replaced by only that
+# FIXME: Having a distinction between a `None` tagset and an empty tagset is not useful here
+def validate_deprels(
+    cols: UDLine,
+    tag_sets: typing.Dict[int, typing.Optional[Tagset]],
+    args: argparse.Namespace,
+):
     if DEPREL >= len(cols):
         return  # this has been already reported in trees()
     # Test only the universal part if testing at universal level.
@@ -877,14 +897,14 @@ def validate_deprels(cols, tag_sets, args):
 # #### Tests applicable to the whole sentence
 
 
-def subset_to_words_and_empty_nodes(tree):
+def subset_to_words_and_empty_nodes(tree: TreeBlock) -> TreeBlock:
     """
     Only picks word and empty node lines, skips multiword token lines.
     """
     return [cols for cols in tree if is_word(cols) or is_empty_node(cols)]
 
 
-def deps_list(cols):
+def deps_list(cols: UDLine) -> typing.List[typing.Tuple[str, str]]:
     if DEPS >= len(cols):
         return  # this has been already reported in trees()
     if cols[DEPS] == "_":
@@ -900,7 +920,7 @@ basic_head_re = re.compile(r"^(0|[1-9][0-9]*)$", re.U)
 enhanced_head_re = re.compile(r"^(0|[1-9][0-9]*)(\.[1-9][0-9]*)?$", re.U)
 
 
-def validate_ID_references(tree):
+def validate_ID_references(tree: TreeBlock):
     """
     Validates that HEAD and DEPS reference existing IDs.
     """
@@ -951,7 +971,7 @@ def validate_ID_references(tree):
                 warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-def validate_root(tree):
+def validate_root(tree: TreeBlock):
     """
     Checks that DEPREL is "root" iff HEAD is 0.
     """
@@ -997,7 +1017,7 @@ def validate_root(tree):
                     warn(testmessage, testclass, testlevel=testlevel, testid=testid)
 
 
-def validate_deps(tree):
+def validate_deps(tree: TreeBlock):
     """
     Validates that DEPS is correctly formatted and that there are no
     self-loops in DEPS.
@@ -1092,7 +1112,7 @@ def validate_deps(tree):
             )
 
 
-def validate_misc(tree):
+def validate_misc(tree: TreeBlock):
     """
     In general, the MISC column can contain almost anything. However, if there
     is a vertical bar character, it is interpreted as the separator of two
@@ -1132,7 +1152,16 @@ def validate_misc(tree):
             )
 
 
-def build_tree(sentence):
+class Tree(TypedDict):
+    nodes: typing.Sequence[UDLine]
+    children: typing.Sequence[typing.Set[int]]
+    linenos: typing.Sequence[int]
+
+
+# FIXME: returning `None` in case of failure doesn't seem ideal, probably better
+# to raise an exception , but that's the case elsewhere so let's address this in
+# a later refactoring stage
+def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     """
     Takes the list of non-comment lines (line = list of columns) describing
     a sentence. Returns a dictionary with items providing easier access to the
@@ -1152,7 +1181,7 @@ def build_tree(sentence):
     global sentence_line  # the line of the first token/word of the current tree (skipping comments!)
     node_line = sentence_line - 1
     children = {}  # node -> set of children
-    tree = {
+    tree: Tree = {
         "nodes": [
             ["0", "_", "_", "_", "_", "_", "_", "_", "_", "_"]
         ],  # add artificial node 0
@@ -1593,7 +1622,7 @@ def validate_single_subject(id, tree):
         )
 
 
-def validate_orphan(id, tree):
+def validate_orphan(node_id, tree):
     """
     The orphan relation is used to attach an unpromoted orphan to the promoted
     orphan in gapping constructions. A common error is that the promoted orphan
@@ -1601,9 +1630,9 @@ def validate_orphan(id, tree):
     via a conj relation, although some other relations are plausible too.
     """
     # This is a level 3 test, we will check only the universal part of the relation.
-    deprel = lspec2ud(tree["nodes"][id][DEPREL])
+    deprel = lspec2ud(tree["nodes"][node_id][DEPREL])
     if deprel == "orphan":
-        pid = int(tree["nodes"][id][HEAD])
+        pid = int(tree["nodes"][node_id][HEAD])
         pdeprel = lspec2ud(tree["nodes"][pid][DEPREL])
         # We include advcl because gapping (or something very similar) can also
         # occur in subordinate clauses: "He buys companies like my mother [does] vegetables."
@@ -1625,12 +1654,12 @@ def validate_orphan(id, tree):
                 testclass,
                 testlevel=testlevel,
                 testid=testid,
-                nodeid=id,
-                nodelineno=tree["linenos"][id],
+                nodeid=node_id,
+                nodelineno=tree["linenos"][node_id],
             )
 
 
-def validate_functional_leaves(id, tree):
+def validate_functional_leaves(node_id, tree):
     """
     Most of the time, function-word nodes should be leaves. This function
     checks for known exceptions and warns in the other cases.
@@ -1638,10 +1667,10 @@ def validate_functional_leaves(id, tree):
     testlevel = 3
     testclass = "Syntax"
     # This is a level 3 test, we will check only the universal part of the relation.
-    deprel = lspec2ud(tree["nodes"][id][DEPREL])
+    deprel = lspec2ud(tree["nodes"][node_id][DEPREL])
     if re.match(r"^(case|mark|cc|aux|cop|det|fixed|goeswith|punct)$", deprel):
-        idparent = id
-        for idchild in tree["children"][id]:
+        idparent = node_id
+        for idchild in tree["children"][node_id]:
             # This is a level 3 test, we will check only the universal part of the relation.
             pdeprel = lspec2ud(tree["nodes"][idparent][DEPREL])
             # ##!!! We should also check that 'det' does not have children except for a limited set of exceptions!
@@ -1709,7 +1738,7 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
             # ##!!! The pdeprel regex in the following test should probably include "det".
@@ -1730,7 +1759,7 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
             if re.match(r"^(cc)$", pdeprel) and not re.match(
@@ -1743,7 +1772,7 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
             # Fixed expressions should not be nested, i.e., no chains of fixed relations.
@@ -1768,7 +1797,7 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
             # Goeswith cannot have any children, not even another goeswith.
@@ -1784,7 +1813,7 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
             # Punctuation can exceptionally have other punct children if an exclamation
@@ -1801,16 +1830,16 @@ def validate_functional_leaves(id, tree):
                     testclass,
                     testlevel=testlevel,
                     testid=testid,
-                    nodeid=id,
+                    nodeid=node_id,
                     nodelineno=tree["linenos"][idchild],
                 )
 
 
-def collect_ancestors(id, tree, ancestors):
+def collect_ancestors(node_id: str, tree, ancestors):
     """
     Usage: ancestors = collect_ancestors(nodeid, nodes, [])
     """
-    pid = int(tree["nodes"][int(id)][HEAD])
+    pid = int(tree["nodes"][int(node_id)][HEAD])
     if pid == 0:
         ancestors.append(0)
         return ancestors
@@ -1821,7 +1850,7 @@ def collect_ancestors(id, tree, ancestors):
     return collect_ancestors(pid, tree, ancestors)
 
 
-def get_caused_nonprojectivities(id, tree):
+def get_caused_nonprojectivities(node_id: str, tree):
     """
     Checks whether a node is in a gap of a nonprojective edge. Report true only
     if the node's parent is not in the same gap. (We use this function to check
@@ -1833,7 +1862,7 @@ def get_caused_nonprojectivities(id, tree):
       children ... array of sets of children indices (numbers, not strings); indices to this array equal to ids (children[0] are the children of the root)
       linenos ... array of line numbers in the file, corresponding to nodes (needed in error messages)
     """
-    iid = int(id)  # just to be sure
+    iid = int(node_id)  # just to be sure
     # We need to find all nodes that are not ancestors of this node and lie
     # on other side of this node than their parent. First get the set of
     # ancestors.
@@ -1865,8 +1894,8 @@ def get_caused_nonprojectivities(id, tree):
     return sorted(leftcross + rightcross)
 
 
-def get_gap(id, tree):
-    iid = int(id)  # just to be sure
+def get_gap(node_id: str, tree):
+    iid = int(node_id)  # just to be sure
     pid = int(tree["nodes"][iid][HEAD])
     if iid < pid:
         rangebetween = range(iid + 1, pid - 1)
@@ -1880,7 +1909,7 @@ def get_gap(id, tree):
     return gap
 
 
-def validate_goeswith_span(id, tree):
+def validate_goeswith_span(node_id, tree):
     """
     The relation 'goeswith' is used to connect word parts that are separated
     by whitespace and should be one word instead. We assume that the relation
@@ -1894,13 +1923,13 @@ def validate_goeswith_span(id, tree):
     gwchildren = sorted(
         [
             x
-            for x in tree["children"][id]
+            for x in tree["children"][node_id]
             if lspec2ud(tree["nodes"][x][DEPREL]) == "goeswith"
         ]
     )
     if gwchildren:
-        gwlist = sorted([id] + gwchildren)
-        gwrange = list(range(id, int(tree["nodes"][gwchildren[-1]][ID]) + 1))
+        gwlist = sorted([node_id] + gwchildren)
+        gwrange = list(range(node_id, int(tree["nodes"][gwchildren[-1]][ID]) + 1))
         # All nodes between me and my last goeswith child should be goeswith too.
         if gwlist != gwrange:
             testid = "goeswith-gap"
@@ -1910,8 +1939,8 @@ def validate_goeswith_span(id, tree):
                 testclass,
                 testlevel=testlevel,
                 testid=testid,
-                nodeid=id,
-                nodelineno=tree["linenos"][id],
+                nodeid=node_id,
+                nodelineno=tree["linenos"][node_id],
             )
         # Non-last node in a goeswith range must have a space after itself.
         nospaceafter = [
@@ -1929,8 +1958,8 @@ def validate_goeswith_span(id, tree):
                 testclass,
                 testlevel=testlevel,
                 testid=testid,
-                nodeid=id,
-                nodelineno=tree["linenos"][id],
+                nodeid=node_id,
+                nodelineno=tree["linenos"][node_id],
             )
 
 
@@ -2019,15 +2048,15 @@ def validate_annotation(tree):
     Checks universally valid consequences of the annotation guidelines.
     """
     for node in tree["nodes"]:
-        id = int(node[ID])
-        validate_upos_vs_deprel(id, tree)
-        validate_left_to_right_relations(id, tree)
-        validate_single_subject(id, tree)
-        validate_orphan(id, tree)
-        validate_functional_leaves(id, tree)
-        validate_fixed_span(id, tree)
-        validate_goeswith_span(id, tree)
-        validate_projective_punctuation(id, tree)
+        node_id = int(node[ID])
+        validate_upos_vs_deprel(node_id, tree)
+        validate_left_to_right_relations(node_id, tree)
+        validate_single_subject(node_id, tree)
+        validate_orphan(node_id, tree)
+        validate_functional_leaves(node_id, tree)
+        validate_fixed_span(node_id, tree)
+        validate_goeswith_span(node_id, tree)
+        validate_projective_punctuation(node_id, tree)
 
 
 def validate_enhanced_annotation(graph):
@@ -2096,7 +2125,7 @@ def validate_enhanced_annotation(graph):
 # ==============================================================================
 
 
-def validate_whitespace(cols, tag_sets):
+def validate_whitespace(cols: UDLine, tag_sets: typing.Dict[int, re.Pattern]):
     """
     Checks a single line for disallowed whitespace.
     Here we assume that all language-independent whitespace-related tests have

@@ -1260,7 +1260,18 @@ def get_projection(node_id: int, tree: Tree) -> typing.Set[int]:
     return projection
 
 
-def build_egraph(sentence):
+class GraphNode(TypedDict):
+    cols: UDLine
+    deps: typing.Sequence[typing.Tuple[str, str]]
+    parents: typing.Set[str]
+    children: typing.Set[str]
+    lineno: int
+
+
+Graph = typing.Dict[str, GraphNode]
+
+
+def build_egraph(sentence: TreeBlock) -> typing.Optional[Graph]:
     """
     Takes the list of non-comment lines (line = list of columns) describing
     a sentence. Returns a dictionary with items providing easier access to the
@@ -1280,7 +1291,7 @@ def build_egraph(sentence):
     global sentence_line  # the line of the first token/word of the current tree (skipping comments!)
     node_line = sentence_line - 1
     egraph_exists = False  # enhanced deps are optional
-    rootnode = {
+    rootnode: GraphNode = {
         "cols": ["0", "_", "_", "_", "_", "_", "_", "_", "_", "_"],
         "deps": [],
         "parents": set(),
@@ -1326,8 +1337,7 @@ def build_egraph(sentence):
         return None
     # Check that the graph is connected. The UD v2 guidelines do not license unconnected graphs.
     # Compute projection of every node. Beware of cycles.
-    projection = set()
-    get_graph_projection("0", egraph, projection)
+    projection = get_graph_projection("0", egraph)
     unreachable = nodeids - projection
     if unreachable:
         sur = sorted(unreachable)
@@ -1340,13 +1350,13 @@ def build_egraph(sentence):
     return egraph
 
 
-def get_graph_projection(id, graph, projection):
-    for child in graph[id]["children"]:
-        if child in projection:
+def get_graph_projection(node_id: str, graph: Graph) -> typing.Set[str]:
+    projection = set([node_id])
+    for child_id in graph[node_id]["children"]:
+        # skip cycles
+        if child_id in projection:
             continue
-            # skip cycles
-        projection.add(child)
-        get_graph_projection(child, graph, projection)
+        projection.update(get_graph_projection(child_id, graph,))
     return projection
 
 
@@ -1355,7 +1365,7 @@ def get_graph_projection(id, graph, projection):
 # ==============================================================================
 
 
-def validate_upos_vs_deprel(id, tree):
+def validate_upos_vs_deprel(node_id: int, tree: Tree):
     """
     For certain relations checks that the dependent word belongs to an expected
     part-of-speech category. Occasionally we may have to check the children of
@@ -1363,10 +1373,10 @@ def validate_upos_vs_deprel(id, tree):
     """
     testlevel = 3
     testclass = "Syntax"
-    cols = tree["nodes"][id]
+    cols = tree["nodes"][node_id]
     # This is a level 3 test, we will check only the universal part of the relation.
     deprel = lspec2ud(cols[DEPREL])
-    childrels = set([lspec2ud(tree["nodes"][x][DEPREL]) for x in tree["children"][id]])
+    childrels = set([lspec2ud(tree["nodes"][x][DEPREL]) for x in tree["children"][node_id]])
     # Certain relations are reserved for nominals and cannot be used for verbs.
     # Nevertheless, they can appear with adjectives or adpositions if they are promoted due to ellipsis.
     # Unfortunately, we cannot enforce this test because a word can be cited
@@ -1388,8 +1398,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Nummod is for "number phrases" only. This could be interpreted as NUM only,
     # but some languages treat some cardinal numbers as NOUNs, and in
@@ -1403,8 +1413,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Advmod is for adverbs, perhaps particles but not for prepositional phrases or clauses.
     # Nevertheless, we should allow adjectives because they can be used as adverbs in some languages.
@@ -1424,8 +1434,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Known expletives are pronouns. Determiners and particles are probably acceptable, too.
     if deprel == "expl" and not re.match(r"^(PRON|DET|PART)$", cols[UPOS]):
@@ -1436,8 +1446,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Auxiliary verb/particle must be AUX.
     if deprel == "aux" and not re.match(r"^(AUX)", cols[UPOS]):
@@ -1448,8 +1458,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Copula is an auxiliary verb/particle (AUX) or a pronoun (PRON|DET).
     if deprel == "cop" and not re.match(r"^(AUX|PRON|DET|SYM)", cols[UPOS]):
@@ -1460,8 +1470,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # AUX is normally aux or cop. It can appear in many other relations if it is promoted due to ellipsis.
     # However, I believe that it should not appear in compound. From the other side, compound can consist
@@ -1474,8 +1484,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Case is normally an adposition, maybe particle.
     # However, there are also secondary adpositions and they may have the original POS tag:
@@ -1494,8 +1504,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Mark is normally a conjunction or adposition, maybe particle but definitely not a pronoun.
     if (
@@ -1510,8 +1520,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     # Cc is a conjunction, possibly an adverb or particle.
     if (
@@ -1526,8 +1536,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     if cols[DEPREL] == "punct" and cols[UPOS] != "PUNCT":
         testid = "rel-upos-punct"
@@ -1537,8 +1547,8 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
     if cols[UPOS] == "PUNCT" and not re.match(r"^(punct|root)", deprel):
         testid = "upos-rel-punct"
@@ -1548,12 +1558,12 @@ def validate_upos_vs_deprel(id, tree):
             testclass,
             testlevel=testlevel,
             testid=testid,
-            nodeid=id,
-            nodelineno=tree["linenos"][id],
+            nodeid=node_id,
+            nodelineno=tree["linenos"][node_id],
         )
 
 
-def validate_left_to_right_relations(id, tree):
+def validate_left_to_right_relations(node_id: int, tree: Tree):
     """
     Certain UD relations must always go left-to-right.
     Here we currently check the rule for the basic dependencies.
@@ -1561,7 +1571,7 @@ def validate_left_to_right_relations(id, tree):
     """
     testlevel = 3
     testclass = "Syntax"
-    cols = tree["nodes"][id]
+    cols = tree["nodes"][node_id]
     if is_multiword_token(cols):
         return
     if DEPREL >= len(cols):
@@ -1581,8 +1591,8 @@ def validate_left_to_right_relations(id, tree):
                 testclass,
                 testlevel=testlevel,
                 testid=testid,
-                nodeid=id,
-                nodelineno=tree["linenos"][id],
+                nodeid=node_id,
+                nodelineno=tree["linenos"][node_id],
             )
 
 

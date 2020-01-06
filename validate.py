@@ -1113,22 +1113,23 @@ def validate_misc(tree):
         if cols[MISC] == "_":
             continue
         misc = [ma.split("=", 1) for ma in cols[MISC].split("|")]
-        mamap = {}
-        for ma in misc:
-            if re.match(r"^(SpaceAfter|Translit|LTranslit|Gloss|LId|LDeriv)$", ma[0]):
-                mamap.setdefault(ma[0], 0)
-                mamap[ma[0]] = mamap[ma[0]] + 1
-        for a in list(mamap):
-            if mamap[a] > 1:
-                testid = "repeated-misc"
-                testmessage = f"MISC attribute {a!r} not supposed to occur twice"
-                warn(
-                    testmessage,
-                    testclass,
-                    testlevel=testlevel,
-                    testid=testid,
-                    nodelineno=node_line,
-                )
+        seen: typing.Set[str] = set()
+        duplicates: typing.Set[str] = set()
+        for k, v in misc:
+            if re.match(r"^(SpaceAfter|Translit|LTranslit|Gloss|LId|LDeriv)$", k):
+                if k in seen:
+                    duplicates.add(k)
+                seen.add(k)
+        for a in duplicates:
+            testid = "repeated-misc"
+            testmessage = f"MISC attribute {a!r} not supposed to occur twice"
+            warn(
+                testmessage,
+                testclass,
+                testlevel=testlevel,
+                testid=testid,
+                nodelineno=node_line,
+            )
 
 
 def build_tree(sentence):

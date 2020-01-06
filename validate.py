@@ -1154,13 +1154,14 @@ def validate_misc(tree: TreeBlock):
 
 class Tree(TypedDict):
     nodes: typing.Sequence[UDLine]
-    children: typing.Sequence[typing.Set[int]]
+    children: typing.Sequence[typing.Sequence[int]]
     linenos: typing.Sequence[int]
 
 
-# FIXME: returning `None` in case of failure doesn't seem ideal, probably better
-# to raise an exception , but that's the case elsewhere so let's address this in
-# a later refactoring stage
+# FIXME: returning `None` in case of failure doesn't seem ideal, probably better to raise an
+# exception , but that's the case elsewhere so let's address this in a later refactoring stage
+# FIXME: it would be nicer to have `children` be a `Sequence[Set[int]]` as originally advertised but
+# let's not change the api for now
 def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     """
     Takes the list of non-comment lines (line = list of columns) describing
@@ -1171,7 +1172,7 @@ def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     tree ... dictionary:
       nodes ... array of word lines, i.e., lists of columns;
           mwt and empty nodes are skipped, indices equal to ids (nodes[0] is empty)
-      children ... array of sets of children indices (numbers, not strings);
+      children ... array of sorted lists of children indices (numbers, not strings);
           indices to this array equal to ids (children[0] are the children of the root)
       linenos ... array of line numbers in the file, corresponding to nodes
           (needed in error messages)
@@ -1180,14 +1181,12 @@ def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     testclass = "Syntax"
     global sentence_line  # the line of the first token/word of the current tree (skipping comments!)
     node_line = sentence_line - 1
-    children = {}  # node -> set of children
-    tree: Tree = {
-        "nodes": [
-            ["0", "_", "_", "_", "_", "_", "_", "_", "_", "_"]
-        ],  # add artificial node 0
-        "children": [],
-        "linenos": [sentence_line],  # for node 0
-    }
+
+    nodes: typing.List[UDLine] = [["0", "_", "_", "_", "_", "_", "_", "_", "_", "_"]]
+    children: typing.Sequence[typing.Set[int]] = [
+        set() for _ in range(len(sentence) + 1)
+    ]
+    linenos = [sentence_line]
     for cols in sentence:
         node_line += 1
         if not is_word(cols):
@@ -1221,23 +1220,23 @@ def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
                 nodelineno=node_line,
             )
             return None
-        tree["nodes"].append(cols)
-        tree["linenos"].append(node_line)
+        nodes.append(cols)
+        linenos.append(node_line)
         # Incrementally build the set of children of every node.
-        children.setdefault(cols[HEAD], set()).add(id_)
-    for cols in tree["nodes"]:
-        tree["children"].append(sorted(children.get(cols[ID], [])))
+        children[head].add(id_)
+
     # Check that there is just one node with the root relation.
-    if len(tree["children"][0]) > 1 and args.single_root:
+    if len(children[0]) > 1 and args.single_root:
         testid = "multiple-roots"
-        testmessage = f"Multiple root words: {tree['children'][0]}"
+        testmessage = f"Multiple root words: {children[0]}"
         warn(testmessage, testclass, testlevel=testlevel, testid=testid, lineno=False)
         return None
     # Return None if there are any cycles. Avoid surprises when working with the graph.
     # Presence of cycles is equivalent to presence of unreachable nodes.
+    tree = Tree(nodes=nodes, children=[sorted(c) for c in children], linenos=linenos)
     projection = set()
-    get_projection(0, tree, projection)
-    unreachable = set(range(1, len(tree["nodes"]) - 1)) - projection
+    projection = get_projection(0, tree, projection)
+    unreachable = set(range(1, len(nodes) - 1)) - projection
     if unreachable:
         testid = "non-tree"
         testmessage = f"Non-tree structure. Words {','.join(str(w) for w in sorted(unreachable))} are not reachable from the root 0."
@@ -1255,7 +1254,7 @@ def get_projection(id, tree, projection):
         if child in projection:
             continue  # cycle is or will be reported elsewhere
         projection.add(child)
-        get_projection(child, tree, projection)
+        projection = get_projection(child, tree, projection)
     return projection
 
 
@@ -2125,7 +2124,7 @@ def validate_enhanced_annotation(graph):
 # ==============================================================================
 
 
-def validate_whitespace(cols: UDLine, tag_sets: typing.Dict[int, re.Pattern]):
+def validate_whitespace(cols: UDLine, tag_sets: typing.Dict[int, typing.Pattern]):
     """
     Checks a single line for disallowed whitespace.
     Here we assume that all language-independent whitespace-related tests have

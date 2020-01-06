@@ -1234,8 +1234,7 @@ def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     # Return None if there are any cycles. Avoid surprises when working with the graph.
     # Presence of cycles is equivalent to presence of unreachable nodes.
     tree = Tree(nodes=nodes, children=[sorted(c) for c in children], linenos=linenos)
-    projection = set()
-    projection = get_projection(0, tree, projection)
+    projection = get_projection(0, tree)
     unreachable = set(range(1, len(nodes) - 1)) - projection
     if unreachable:
         testid = "non-tree"
@@ -1245,16 +1244,19 @@ def build_tree(sentence: typing.Sequence[UDLine]) -> typing.Optional[Tree]:
     return tree
 
 
-def get_projection(id, tree, projection):
+def get_projection(node_id: int, tree: Tree) -> typing.Set[int]:
     """
     Like proj() above, but works with the tree data structure. Collects node ids
     in the set called projection.
     """
-    for child in tree["children"][id]:
-        if child in projection:
+    # Note: this creates a set for every descendant. Sets are normally cheap so this should not be
+    # an issue, but if it becomes one, this could be changed to use a recursive closure and a shared
+    # set
+    projection = set([node_id])
+    for child_id in tree["children"][node_id]:
+        if child_id in projection:
             continue  # cycle is or will be reported elsewhere
-        projection.add(child)
-        projection = get_projection(child, tree, projection)
+        projection.update(get_projection(child_id, tree))
     return projection
 
 
@@ -1902,8 +1904,7 @@ def get_gap(node_id: str, tree):
         rangebetween = range(pid + 1, iid - 1)
     gap = set()
     if rangebetween:
-        projection = set()
-        get_projection(pid, tree, projection)
+        projection = get_projection(pid, tree)
         gap = set(rangebetween) - projection
     return gap
 
@@ -2124,7 +2125,9 @@ def validate_enhanced_annotation(graph):
 # ==============================================================================
 
 
-def validate_whitespace(cols: UDLine, tag_sets: typing.Dict[int, typing.Pattern]):
+def validate_whitespace(
+    cols: UDLine, tag_sets: typing.Dict[int, typing.Collection[typing.Pattern]]
+):
     """
     Checks a single line for disallowed whitespace.
     Here we assume that all language-independent whitespace-related tests have

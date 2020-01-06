@@ -1,6 +1,9 @@
 #Emacs backup files
 *~
 
+# VSCode cache
+.vscode
+
 # Python virtualenv
 .venv
 
